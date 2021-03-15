@@ -213,15 +213,15 @@ class ldos_line:
         path_distance=array([norm(self.lv_path*(i+0.5)/self.npts) for i in range(self.npts)])
         #plots the ldo
         if normalize_ldos:
-            ldosmap=self.ldosax.pcolormesh(array([[path_distance[i] for j in range(self.eend-self.estart)] for i in range(self.npts)]),array([self.energies[self.estart:self.eend] for i in range(self.npts)]),self.ldos/max([max(i) for i in self.ldos]),cmap=self.cmap,shading='nearest')
+            ldosmap=self.ldosax.pcolormesh(array([self.energies[self.estart:self.eend] for i in range(self.npts)]),array([[path_distance[i] for j in range(self.eend-self.estart)] for i in range(self.npts)]),self.ldos/max([max(i) for i in self.ldos]),cmap=self.cmap,shading='nearest')
         else:
-            ldosmap=self.ldosax.pcolormesh(path_distance,self.energies[self.estart:self.eend],self.ldos,cmap=self.cmap,shading='nearest')
+            ldosmap=self.ldosax.pcolormesh(array([self.energies[self.estart:self.eend] for i in range(self.npts)]),array([[path_distance[i] for j in range(self.eend-self.estart)] for i in range(self.npts)]),self.ldos,cmap=self.cmap,shading='nearest')
                 
         if 'show_colorbar' in args:
             self.ldosfig.colorbar(ldosmap)
         
-        self.ldosax.set(xlabel='distance along ldos line / $\AA$')
-        self.ldosax.set(ylabel='energy - $E_f$ / eV')
+        self.ldosax.set(ylabel='distance along ldos line / $\AA$')
+        self.ldosax.set(xlabel='energy - $E_f$ / eV')
         self.ldosax.set(title='LDOS line | {} $\AA$'.format(self.tip_disp))
         self.ldosfig.show()
         
