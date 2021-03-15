@@ -1,4 +1,4 @@
-from numpy import array
+from numpy import array,exp
 import sys
 import matplotlib.pyplot as plt
 import getopt
@@ -57,7 +57,7 @@ def plot_weighted_dos(doscar,poscar,phi,**args):
     else:
         selected_atoms=[i for i in range(sum(atomnums))]
         
-    K=array([tunneling_factor(i,phi) for i in energies])
+    K=array([exp(-1.0e-10*tunneling_factor(i,phi)) for i in energies])
     
     plt.figure()
     for i in selected_atoms:
