@@ -154,7 +154,7 @@ class ldos_line:
                         for l in range(len(self.dos[counter])):
                             self.ldos[i]+=self.dos[counter][l][self.estart:self.eend]*exp(-1.0*posdiff*self.K*1.0e-10)
                     counter+=1
-        print('total time to integrate {} points: {} seconds on {} processors'.format(self.npts**2,time()-start,self.nprocs))
+        print('total time to integrate {} points: {} seconds on {} processors'.format(self.npts*(self.eend-self.estart),time()-start,self.nprocs))
     
     #performs integration at single point of the x,y grid when run in parallel
     def integrator(self,i):
