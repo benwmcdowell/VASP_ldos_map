@@ -33,23 +33,6 @@ class ldos_line:
         self.unit_cell_num=4
         
         chdir(filepath)
-        
-    #reads in the ldos file created by self.write_ldos()
-    def parse_ldos(self,filepath):
-        self.tip_disp=float(filepath.split('_')[-1])
-        with open(filepath,'r') as file:
-            lines=file.readlines()
-            self.npts=int(lines[0].split()[3])
-            self.x=array([[0.0 for i in range(self.npts)] for j in range(self.npts)])
-            self.y=array([[0.0 for i in range(self.npts)] for j in range(self.npts)])
-            self.ldos=array([[0.0 for j in range(self.npts)] for i in range(self.npts)])
-            self.emax=lines[1].split()[5]
-            self.emin=lines[1].split()[3]
-            for i in range(self.npts):
-                for j in range(self.npts):
-                    self.x[i][j]=lines[4+i].split()[j]
-                    self.y[i][j]=lines[5+self.npts+i].split()[j]
-                    self.ldos[i][j]=lines[6+2*self.npts+i].split()[j]
     
     #reads in the POSCAR and DOSCAR files
     def parse_VASP_output(self,**args):
@@ -126,7 +109,7 @@ class ldos_line:
         self.ldos=array([[0.0 for i in range(self.eend-self.estart)] for j in range(self.npts)])
         
         if 'phi' in args and args['phi']!=0:
-            self.K=array([tunneling_factor(i,args['phi']) for i in self.energies[self.estart:self.eend]])
+            self.K=array([tunneling_factor(self.emax,i,args['phi']) for i in self.energies[self.estart:self.eend]])
         else:
             self.K=array([1.0 for i in range(self.estart-self.eend)])
             
@@ -173,31 +156,6 @@ class ldos_line:
         
         return temp_ldos
     
-    #the ldos is written to a file in the current directory with the following format:
-    #3 lines of informational header
-    #1 blank line
-    #self.npts lines each containing self.npts x values to define the grid
-    #1 blank line
-    #self.npts lines each containing self.npts y values to define the grid
-    #1 blank line
-    #self.npts lines each containing self.npts ldos values
-    def write_ldos(self):
-        filename='./map_from_{}-{}V_exclude_{}_disp_{}'.format(self.emin,self.emax,''.join(self.exclude_args),self.tip_disp)
-        with open(filename, 'w') as file:
-            file.write('DOS integrated over {} points per lattice vector'.format(self.npts))
-            file.write('\nintegration performed from {} to {} V\n'.format(self.emin,self.emax))
-            file.write('atoms types excluded from DOS integration: ')
-            for i in self.exclude_args:
-                file.write('{} '.format(i))
-            file.write('\n\n')
-            for axes in [self.x,self.y,self.ldos]:
-                for i in range(self.npts):
-                    for j in range(self.npts):
-                        file.write(str(axes[i][j]))
-                        file.write(' ')
-                    file.write('\n')
-                file.write('\n')
-    
     #plots the ldos map and overlaid atoms on size+1 periodic cells
     def plot_map(self,**args):
         if 'cmap' in args:
@@ -210,12 +168,12 @@ class ldos_line:
             
         self.ldosfig,self.ldosax=plt.subplots(1,1)
         
-        path_distance=array([norm(self.lv_path*(i+0.5)/self.npts) for i in range(self.npts)])
+        self.path_distance=array([norm(self.lv_path*(i+0.5)/self.npts) for i in range(self.npts)])
         #plots the ldo
         if normalize_ldos:
-            ldosmap=self.ldosax.pcolormesh(array([self.energies[self.estart:self.eend] for i in range(self.npts)]),array([[path_distance[i] for j in range(self.eend-self.estart)] for i in range(self.npts)]),self.ldos/max([max(i) for i in self.ldos]),cmap=self.cmap,shading='nearest')
+            ldosmap=self.ldosax.pcolormesh(array([self.energies[self.estart:self.eend] for i in range(self.npts)]),array([[self.path_distance[i] for j in range(self.eend-self.estart)] for i in range(self.npts)]),self.ldos/max([max(i) for i in self.ldos]),cmap=self.cmap,shading='nearest')
         else:
-            ldosmap=self.ldosax.pcolormesh(array([self.energies[self.estart:self.eend] for i in range(self.npts)]),array([[path_distance[i] for j in range(self.eend-self.estart)] for i in range(self.npts)]),self.ldos,cmap=self.cmap,shading='nearest')
+            ldosmap=self.ldosax.pcolormesh(array([self.energies[self.estart:self.eend] for i in range(self.npts)]),array([[self.path_distance[i] for j in range(self.eend-self.estart)] for i in range(self.npts)]),self.ldos,cmap=self.cmap,shading='nearest')
                 
         if 'show_colorbar' in args:
             self.ldosfig.colorbar(ldosmap)
@@ -225,6 +183,36 @@ class ldos_line:
         self.ldosax.set(title='LDOS line | {} $\AA$'.format(self.tip_disp))
         self.ldosfig.show()
         
+    #take a slice of the ldos a plot at a specific point in the path
+    #options for specifying are: x (positional, direct), y (positional, direct), or pos (position along self.path_distance)
+    def plot_position_slice(self,**args):
+        mindiff=norm(self.lv)
+        if 'x' in args:
+            for i in range(self.npts):
+                if abs(self.x[i]-float(args['x']))<mindiff:
+                    mindiff=abs(self.x[i]-float(args['x']))
+                    ref_index=i
+        elif 'y' in args:
+            for i in range(self.npts):
+                if abs(self.y[i]-float(args['y']))<mindiff:
+                    mindiff=abs(self.y[i]-float(args['y']))
+                    ref_index=i
+        elif 'pos' in args:
+            for i in range(self.npts):
+                if abs(self.path_distance[i]-float(args['pos']))<mindiff:
+                    mindiff=abs(self.path_distance[i]-float(args['pos']))
+                    ref_index=i
+        else:
+            print('no positional argument specified. exiting...')
+            sys.exit()
+            
+        self.eslice_fig,self.eslice_ax=plt.subplots(1,1)
+        self.eslice_ax.plot(self.energies[self.estart:self.eend],self.ldos[ref_index,:])
+        self.ldosax.plot(array([self.energies[self.estart],self.energies[self.eend]]),array([self.path_distance[ref_index] for i in range(2)]))
+        self.eslice_ax.set(ylabel='normalized tunneling probability')
+        self.eslice_ax.set(xlabel='energy - $E_f$ / eV')
+        self.ldosfig.canvas.draw()
+        self.eslice_fig.show()
 
 if __name__=='__main__':
     sys.path.append(getcwd())
