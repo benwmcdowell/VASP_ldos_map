@@ -126,8 +126,8 @@ class ldos_map:
         if 'unit_cell_num' in args:
             self.unit_cell_num=args['unit_cell_num']
         
-        for i in range(-1*self.unit_cell_num,self.unit_cell_num):
-            for j in range(-1*self.unit_cell_num,self.unit_cell_num):
+        for i in range(-1*self.unit_cell_num,self.unit_cell_num+1):
+            for j in range(-1*self.unit_cell_num,self.unit_cell_num+1):
                 for k in self.coord:
                     self.periodic_coord.append(k+self.lv[0]*i+self.lv[1]*j)
         self.periodic_coord=array(self.periodic_coord)
