@@ -7,7 +7,7 @@ def tunneling_factor(V,E,phi):
     E*=1.60218e-19
     phi*=1.60218e-19
     prefactor=8/3/V/pi*sqrt(2*9.11e-31)/6.626e-34
-    barrier=(phi-E)**(3/2)-(phi-E-V)**(3/2)
+    barrier=(phi-E+V)**(3/2)-(phi-E)**(3/2)
     return prefactor*barrier
 
 #contains methods for reading VASP output files
