@@ -1,12 +1,16 @@
 from numpy import array,zeros,dot,sqrt
 from math import pi
 
-#contains methods for reading VASP output files
-
-def tunneling_factor(V,phi):
-    prefactor=4/3/V/1.60218e-19*pi*sqrt(2*9.11e-31)/6.626e-34
-    barrier=(phi*1.60218e-19)**(3/2)-(phi*1.60218e-19-V*1.60218e-19)**(3/2)
+#calculates factor for voltage (in eV) dependent tunneling probability
+def tunneling_factor(V,E,phi):
+    V*=1.60218e-19
+    E*=1.60218e-19
+    phi*=1.60218e-19
+    prefactor=8/3/V/pi*sqrt(2*9.11e-31)/6.626e-34
+    barrier=(phi-E)**(3/2)-(phi-E-V)**(3/2)
     return prefactor*barrier
+
+#contains methods for reading VASP output files
 
 #reads DOSCAR
 def parse_doscar(filepath):
