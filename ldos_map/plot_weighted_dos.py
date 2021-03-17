@@ -5,7 +5,7 @@ import getopt
 from os.path import exists
 from lib import parse_doscar,parse_poscar,tunneling_factor
 
-def plot_weighted_dos(doscar,poscar,phi,**args):
+def plot_weighted_dos(doscar,poscar,V,phi,**args):
     dos, energies, ef = parse_doscar(doscar)
     atomtypes, atomnums = parse_poscar(poscar)[2:4]
     
@@ -56,9 +56,9 @@ def plot_weighted_dos(doscar,poscar,phi,**args):
                 counter+=atomnums[atomtypes.index(i)]
     else:
         selected_atoms=[i for i in range(sum(atomnums))]
-        
-    K=array([exp(-1.0e-10*tunneling_factor(i,phi)) for i in energies])
     
+    K=array([exp(-1.0e-10*tunneling_factor(V,i,phi)) for i in energies])
+        
     plt.figure()
     for i in selected_atoms:
         for j in range(len(atomnums)):
