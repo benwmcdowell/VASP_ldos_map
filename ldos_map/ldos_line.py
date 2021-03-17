@@ -185,12 +185,12 @@ class ldos_line:
         self.ldosax.set(title='LDOS line | {} $\AA$'.format(self.tip_disp))
         self.ldosfig.show()
         
-    #take a slice of the ldos a plot at a specific point in the path
+    #take a slice of the ldos plot at a specific point in the path
     #options for specifying are: x (positional, direct), y (positional, direct), or pos (position along self.path_distance)
     def plot_position_slice(self,**args):
         if self.position_slices==0:
-            self.eslice_fig,self.eslice_ax=plt.subplots(1,1)
-            self.eslice_fig.show()
+            self.pslice_fig,self.pslice_ax=plt.subplots(1,1)
+            self.pslice_fig.show()
             
         mindiff=norm(self.lv)
         if 'x' in args:
@@ -212,13 +212,33 @@ class ldos_line:
             print('no positional argument specified. exiting...')
             sys.exit()
         
-        tempvar=self.eslice_ax.plot(self.energies[self.estart:self.eend],self.ldos[ref_index,:])
+        tempvar=self.pslice_ax.plot(self.energies[self.estart:self.eend],self.ldos[ref_index,:])
         self.ldosax.plot(array([self.energies[self.estart],self.energies[self.eend]]),array([self.path_distance[ref_index] for i in range(2)]),c=tempvar[0].get_color())
+        self.pslice_ax.set(ylabel='normalized tunneling probability')
+        self.pslice_ax.set(xlabel='energy - $E_f$ / eV')
+        self.ldosfig.canvas.draw()
+        self.pslice_fig.canvas.draw()
+        self.position_slices+=1
+        
+    #take a slice of the ldos at a given energy to see spatial dependance
+    def plot_energy_slice(self,ref_energy):
+        if self.energy_slices==0:
+            self.eslice_fig,self.eslice_ax=plt.subplots(1,1)
+            self.eslice_fig.show()
+            
+        mindiff=self.energies[-1]-self.energies[0]
+        for i in range(self.estart,self.eend):
+            if abs(self.energies[i]-ref_energy)<mindiff:
+                mindiff=abs(self.energies[i]-ref_energy)
+                ref_index=i
+        
+        tempvar=self.eslice_ax.plot(self.path_distance,self.ldos[:,ref_index-self.estart])
+        self.ldosax.plot(array([self.energies[ref_index] for i in range(2)]),array([self.path_distance[0],self.path_distance[-1]]),c=tempvar[0].get_color())
         self.eslice_ax.set(ylabel='normalized tunneling probability')
-        self.eslice_ax.set(xlabel='energy - $E_f$ / eV')
+        self.eslice_ax.set(xlabel='distance along ldos line / $\AA$')
         self.ldosfig.canvas.draw()
         self.eslice_fig.canvas.draw()
-        self.position_slices+=1
+        self.energy_slices+=1
 
 if __name__=='__main__':
     sys.path.append(getcwd())
