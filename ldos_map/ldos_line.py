@@ -31,6 +31,8 @@ class ldos_line:
         self.periodic_coord=[]
         self.tip_disp=15.0
         self.unit_cell_num=4
+        self.position_slices=0
+        self.energy_slices=0
         
         chdir(filepath)
     
@@ -186,6 +188,10 @@ class ldos_line:
     #take a slice of the ldos a plot at a specific point in the path
     #options for specifying are: x (positional, direct), y (positional, direct), or pos (position along self.path_distance)
     def plot_position_slice(self,**args):
+        if self.position_slices==0:
+            self.eslice_fig,self.eslice_ax=plt.subplots(1,1)
+            self.eslice_fig.show()
+            
         mindiff=norm(self.lv)
         if 'x' in args:
             for i in range(self.npts):
@@ -205,14 +211,14 @@ class ldos_line:
         else:
             print('no positional argument specified. exiting...')
             sys.exit()
-            
-        self.eslice_fig,self.eslice_ax=plt.subplots(1,1)
-        self.eslice_ax.plot(self.energies[self.estart:self.eend],self.ldos[ref_index,:])
-        self.ldosax.plot(array([self.energies[self.estart],self.energies[self.eend]]),array([self.path_distance[ref_index] for i in range(2)]))
+        
+        tempvar=self.eslice_ax.plot(self.energies[self.estart:self.eend],self.ldos[ref_index,:])
+        self.ldosax.plot(array([self.energies[self.estart],self.energies[self.eend]]),array([self.path_distance[ref_index] for i in range(2)]),c=tempvar[0].get_color())
         self.eslice_ax.set(ylabel='normalized tunneling probability')
         self.eslice_ax.set(xlabel='energy - $E_f$ / eV')
         self.ldosfig.canvas.draw()
-        self.eslice_fig.show()
+        self.eslice_fig.canvas.draw()
+        self.position_slices+=1
 
 if __name__=='__main__':
     sys.path.append(getcwd())
@@ -247,7 +253,7 @@ if __name__=='__main__':
         if i in ['-w','-work_function']:
             phi=float(j)
     if exists('./DOSCAR'):
-        main=ldos_map('./')
+        main=ldos_line('./')
         main.parse_VASP_output()
         main.calculate_ldos(npts,emax,emin,exclude=exclude,nprocs=nprocs,tip_disp=tip_disp,unit_cell_num=unit_cell_num,phi=phi)
         main.write_ldos()
