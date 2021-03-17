@@ -14,10 +14,6 @@ from matplotlib.colors import Normalize,LinearSegmentedColormap
 from math import pi
 from lib import parse_doscar,parse_poscar,parse_CHGCAR,parse_bader_ACF,parse_potcar,tunneling_factor
 
-#creates a custom colormap
-colors=[(83/255,10/255,6/255),(98/255,15/255,9/255),(116/255,28/255,10/255),(133/255,46/255,9/255),(150/255,67/255,14/255),(167/255,90/255,18/255),(185/255,118/255,15/255),(202/255,145/255,22/255),(219/255,178/255,24/255),(236/255,221/255,20/255),(247/255,246/255,25/255)]
-rhk=LinearSegmentedColormap.from_list('rhk',colors,N=256)
-
 class ldos_map:
     def __init__(self,filepath):
         self.npts=1
@@ -38,7 +34,7 @@ class ldos_map:
         self.unit_cell_num=4
         self.atom_colors=[]
         self.atom_sizes=[]
-        self.cmap=rhk
+        self.cmap=plt.rcParams['image.cmap']
         self.charges=[]
         self.numvalence=[]
         self.ldosline=[]
@@ -391,11 +387,11 @@ class ldos_map:
             tempy=zeros(len(self.energies))
             for k in range(len(self.dos[i+1])):
                 tempy+=self.dos[i+1][k]
-            self.baderdosax.plot(self.energies,tempy,color=cm.bwr(cnorm(j)))
+            self.baderdosax.plot(self.energies,tempy,color=bwr(cnorm(j)))
         self.baderdosax.set(xlabel='energy - $E_f$ / eV')
         self.baderdosax.set(ylabel='DOS / states $eV^{-1}$')
         self.baderdosax.set_facecolor('grey')
-        cbar=plt.colorbar(cm.ScalarMappable(norm=cnorm, cmap='bwr'))
+        cbar=plt.colorbar(ScalarMappable(norm=cnorm, cmap='bwr'))
         plt.set_cmap('bwr')
         cbar.set_label('net charge of {}'.format(', '.join(types_to_plot)))
         cbar.ax.yaxis.set_major_formatter(FormatStrFormatter('%+.3f'))
