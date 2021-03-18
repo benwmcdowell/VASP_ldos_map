@@ -11,7 +11,7 @@ from os import getcwd,chdir
 from time import time
 from pathos.multiprocessing import ProcessPool
 from matplotlib.colors import Normalize,LinearSegmentedColormap
-from lib import parse_doscar,parse_poscar,parse_CHGCAR,parse_bader_ACF,parse_potcar,tunneling_factor
+from lib import parse_doscar,parse_poscar,parse_bader_ACF,parse_potcar,tunneling_factor
 
 class ldos_line:
     def __init__(self,filepath):
@@ -213,7 +213,7 @@ class ldos_line:
             sys.exit()
         
         tempvar=self.pslice_ax.plot(self.energies[self.estart:self.eend],self.ldos[ref_index,:])
-        self.ldosax.plot(array([self.energies[self.estart],self.energies[self.eend]]),array([self.path_distance[ref_index] for i in range(2)]),c=tempvar[0].get_color())
+        self.ldosax.plot(array([self.energies[self.estart],self.energies[self.eend]]),array([self.path_distance[ref_index] for i in range(2)]),c=tempvar[0].get_color(),linewidth=6)
         self.pslice_ax.set(ylabel='normalized tunneling probability')
         self.pslice_ax.set(xlabel='energy - $E_f$ / eV')
         self.ldosfig.canvas.draw()
@@ -233,7 +233,7 @@ class ldos_line:
                 ref_index=i
         
         tempvar=self.eslice_ax.plot(self.path_distance,self.ldos[:,ref_index-self.estart])
-        self.ldosax.plot(array([self.energies[ref_index] for i in range(2)]),array([self.path_distance[0],self.path_distance[-1]]),c=tempvar[0].get_color())
+        self.ldosax.plot(array([self.energies[ref_index] for i in range(2)]),array([self.path_distance[0],self.path_distance[-1]]),c=tempvar[0].get_color(),linewidth=6)
         self.eslice_ax.set(ylabel='normalized tunneling probability')
         self.eslice_ax.set(xlabel='distance along ldos line / $\AA$')
         self.ldosfig.canvas.draw()
