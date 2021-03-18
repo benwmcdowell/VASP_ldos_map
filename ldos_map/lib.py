@@ -120,27 +120,30 @@ def parse_potcar(ifile):
         
     return numvalence
 
-#reads the total charge density from CHGCAR or PARCHG
-def parse_CHGCAR(ifile):
-    with open(ifile,'r') as chgcar:
+#reads the average electrostatic potential from LOCPOT
+#in the case of spin polarized calculations, the average potential is returned
+def parse_LOCPOT(ifile):
+    with open(ifile,'r') as locpot:
         x=-1
         dim=0
         searching=True
+        e=[]
         while searching:
-            line=chgcar.readline()
+            line=locpot.readline()
             if not line:
                 break
             line=line.split()
-            if len(line)==0 and dim==0:
-                line=chgcar.readline().split()
+            if len(line)==0:
+                line=locpot.readline().split()
                 x=0
                 y=0
                 z=0
-                dim=[int(i) for i in line]
-                chg_density=zeros((dim[0],dim[1],dim[2]))
+                if dim==0:
+                    dim=[int(i) for i in line]
+                temp_e=zeros((dim[0],dim[1],dim[2]))
             elif x>-1:
                 for i in line:
-                    chg_density[x][y][z]=float(i)
+                    temp_e[x][y][z]=float(i)
                     x+=1
                     if x==dim[0]:
                         x=0
@@ -149,7 +152,11 @@ def parse_CHGCAR(ifile):
                         y=0
                         z+=1
                     if z==dim[2]:
-                        searching=False
+                        e.append(temp_e)
+                        x=0
+                        y=0
+                        z=0
+                        temp_e=zeros((dim[0],dim[1],dim[2]))
                         break
-    
-    return chg_density
+    e=sum(e)/len(e)
+    return e
