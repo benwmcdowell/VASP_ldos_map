@@ -318,7 +318,7 @@ class ldos_map:
         atom_scatter=self.ldosax.scatter(tempx,tempy,color=colors,s=sizes)
         self.ldosax.set(xlabel='x coordinate / $\AA$')
         self.ldosax.set(ylabel='y coordinate / $\AA$')
-        self.ldosax.set(title='{} to {} V | {} $\AA$'.format(self.emin,self.emax,self.tip_disp))
+        self.ldosax.set(title='{} to {} V | {} $\AA$ | phi = {}'.format(self.emin,self.emax,self.tip_disp,self.phi))
         patches=[]
         for i in range(len(self.atomtypes)):
             if self.atomtypes[i] not in show_charges:
