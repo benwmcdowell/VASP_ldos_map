@@ -73,6 +73,7 @@ class ldos_map:
         self.exclude=header[3][1:].split(',')
         self.npts=int(header[4][1:])
         self.phi=float(header[5][1:])
+        self.unit_cell_num=int(header[6][1:])
         
         with open(filepath,'r') as file:
             lines=file.readlines()
@@ -94,7 +95,7 @@ class ldos_map:
     #1 blank line
     #self.npts lines each containing self.npts ldos values
     def write_ldos(self):
-        filename='./map_E{}-{}V_D{}_X{}_N{}_W{}'.format(self.emin,self.emax,self.tip_disp,','.join(self.exclude_args),self.npts,self.phi)
+        filename='./map_E{}-{}V_D{}_X{}_N{}_W{}_U{}'.format(self.emin,self.emax,self.tip_disp,','.join(self.exclude_args),self.npts,self.phi,self.unit_cell_num)
         with open(filename, 'w') as file:
             file.write('DOS integrated over {} points per lattice vector'.format(self.npts))
             file.write('\nintegration performed from {} to {} V\n'.format(self.emin,self.emax))
@@ -290,7 +291,7 @@ class ldos_map:
                     ldosmap=self.ldosax.pcolormesh(self.x+self.lv[0][0]*i+self.lv[1][0]*j,self.y+self.lv[0][1]*i+self.lv[1][1]*j,self.ldos,cmap=self.cmap,shading='nearest')
                     
         if 'show_colorbar' in args:
-            self.ldosfig.colorbar(ldosmap)
+            map_cbar=self.ldosfig.colorbar(ldosmap)
         
         #holds the position and color of each atom
         tempx=[]
