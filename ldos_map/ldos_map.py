@@ -1,4 +1,4 @@
-from numpy import array,dot,exp,linspace,where,zeros,shape,sqrt
+from numpy import array,dot,exp,linspace,where,zeros
 from numpy.linalg import norm,inv
 import sys
 import matplotlib.pyplot as plt
@@ -10,9 +10,8 @@ from os.path import exists,getsize
 from os import getcwd,chdir
 from time import time
 from pathos.multiprocessing import ProcessPool
-from matplotlib.colors import Normalize,LinearSegmentedColormap
-from math import pi
-from lib import parse_doscar,parse_poscar,parse_CHGCAR,parse_bader_ACF,parse_potcar,tunneling_factor
+from matplotlib.colors import Normalize
+from lib import parse_doscar,parse_poscar,parse_bader_ACF,parse_potcar,tunneling_factor
 
 class ldos_map:
     def __init__(self,filepath):
@@ -41,9 +40,10 @@ class ldos_map:
         self.zcut=[]
         
         chdir(filepath)
-        
+    
+    ### depreciated ###
     #reads in the ldos file created by self.write_ldos()
-    def parse_ldos(self,filepath):
+    def parse_ldos_old(self,filepath):
         self.tip_disp=float(filepath.split('_')[-1])
         with open(filepath,'r') as file:
             lines=file.readlines()
@@ -58,6 +58,57 @@ class ldos_map:
                     self.x[i][j]=lines[4+i].split()[j]
                     self.y[i][j]=lines[5+self.npts+i].split()[j]
                     self.ldos[i][j]=lines[6+2*self.npts+i].split()[j]
+                    
+    #reads in the ldos file created by self.write_ldos()
+    def parse_ldos(self,filepath):
+        header=filepath.split('_')
+        if header[0][-3:]!='map':
+            print('not a ldos map file. exiting...')
+            sys.exit()
+        
+        erange=header[1][1:-1].split('-')
+        self.emin=float(erange[0])
+        self.emax=float(erange[1])
+        self.tip_disp=float(header[2][1:])
+        self.exclude=header[3][1:].split(',')
+        self.npts=int(header[4][1:])
+        self.phi=float(header[5][1:])
+        
+        with open(filepath,'r') as file:
+            lines=file.readlines()
+            self.x=array([[0.0 for i in range(self.npts)] for j in range(self.npts)])
+            self.y=array([[0.0 for i in range(self.npts)] for j in range(self.npts)])
+            self.ldos=array([[0.0 for j in range(self.npts)] for i in range(self.npts)])
+            for i in range(self.npts):
+                for j in range(self.npts):
+                    self.x[i][j]=lines[4+i].split()[j]
+                    self.y[i][j]=lines[5+self.npts+i].split()[j]
+                    self.ldos[i][j]=lines[6+2*self.npts+i].split()[j]
+                    
+    #the ldos is written to a file in the current directory with the following format:
+    #3 lines of informational header
+    #1 blank line
+    #self.npts lines each containing self.npts x values to define the grid
+    #1 blank line
+    #self.npts lines each containing self.npts y values to define the grid
+    #1 blank line
+    #self.npts lines each containing self.npts ldos values
+    def write_ldos(self):
+        filename='./map_E{}-{}V_D{}_X{}_N{}_W{}'.format(self.emin,self.emax,self.tip_disp,','.join(self.exclude_args),self.npts,self.phi)
+        with open(filename, 'w') as file:
+            file.write('DOS integrated over {} points per lattice vector'.format(self.npts))
+            file.write('\nintegration performed from {} to {} V\n'.format(self.emin,self.emax))
+            file.write('atoms types excluded from DOS integration: ')
+            for i in self.exclude_args:
+                file.write('{} '.format(i))
+            file.write('\n\n')
+            for axes in [self.x,self.y,self.ldos]:
+                for i in range(self.npts):
+                    for j in range(self.npts):
+                        file.write(str(axes[i][j]))
+                        file.write(' ')
+                    file.write('\n')
+                file.write('\n')
     
     #reads in the POSCAR and DOSCAR files
     def parse_VASP_output(self,**args):
@@ -139,7 +190,7 @@ class ldos_map:
             print('integrating from {} to {} V'.format(self.emin,self.energies[-1]))
         
         if 'phi' in args and args['phi']!=0:
-            self.K=array([tunneling_factor(i,args['phi']) for i in self.energies[self.estart:self.eend]])
+            self.K=array([tunneling_factor(self.emax,i,args['phi']) for i in self.energies[self.estart:self.eend]])
         else:
             self.K=array([1.0 for i in range(self.estart-self.eend)])
             
@@ -187,31 +238,6 @@ class ldos_map:
             counter+=1
         
         return temp_ldos
-    
-    #the ldos is written to a file in the current directory with the following format:
-    #3 lines of informational header
-    #1 blank line
-    #self.npts lines each containing self.npts x values to define the grid
-    #1 blank line
-    #self.npts lines each containing self.npts y values to define the grid
-    #1 blank line
-    #self.npts lines each containing self.npts ldos values
-    def write_ldos(self):
-        filename='./map_from_{}-{}V_exclude_{}_disp_{}'.format(self.emin,self.emax,''.join(self.exclude_args),self.tip_disp)
-        with open(filename, 'w') as file:
-            file.write('DOS integrated over {} points per lattice vector'.format(self.npts))
-            file.write('\nintegration performed from {} to {} V\n'.format(self.emin,self.emax))
-            file.write('atoms types excluded from DOS integration: ')
-            for i in self.exclude_args:
-                file.write('{} '.format(i))
-            file.write('\n\n')
-            for axes in [self.x,self.y,self.ldos]:
-                for i in range(self.npts):
-                    for j in range(self.npts):
-                        file.write(str(axes[i][j]))
-                        file.write(' ')
-                    file.write('\n')
-                file.write('\n')
     
     #specifies which atoms to overlap on the ldos map
     #the argument ranges difines the range of atoms to include: [[xmin,xmax],[ymin,ymax],[zmin,zmax]]
