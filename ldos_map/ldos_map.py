@@ -147,6 +147,7 @@ class ldos_map:
         self.emax=emax
         self.emin=emin
         self.npts=npts
+        self.phi=args['phi']
         self.x=array([[0.0 for i in range(self.npts)] for j in range(self.npts)])
         self.y=array([[0.0 for i in range(self.npts)] for j in range(self.npts)])
         self.z=array([[0.0 for i in range(self.npts)] for j in range(self.npts)])
@@ -195,8 +196,8 @@ class ldos_map:
             self.emax=self.energies[-1]
             print('specified emax exceeds maximum energy in DOSCAR. setting emax to {}'.format(self.emax))
                 
-        if 'phi' in args and args['phi']!=0:
-            self.K=array([tunneling_factor(self.emax,i,args['phi']) for i in self.energies[self.estart:self.eend]])
+        if self.phi!=0:
+            self.K=array([tunneling_factor(self.emax,i,self.phi) for i in self.energies[self.estart:self.eend]])
         else:
             self.K=array([1.0 for i in range(self.estart-self.eend)])
             
