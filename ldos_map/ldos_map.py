@@ -180,15 +180,21 @@ class ldos_map:
         self.periodic_coord=array(self.periodic_coord)
         
         for i in range(len(self.energies)):
-            if self.energies[i]<emin:
+            if self.energies[i]<self.emin:
                 self.estart=i
-            if self.energies[i]>emax:
+            if self.energies[i]>self.emax:
                 self.eend=i
                 break
-        else:
-            print('specified emax exceeds maximum energy in DOSCAR.')
-            print('integrating from {} to {} V'.format(self.emin,self.energies[-1]))
-        
+            
+        if self.energies[0]>self.emin:
+            self.estart=0
+            self.emin=self.energies[0]
+            print('specified emin is less than minimum energy in DOSCAR. setting emin to {}'.format(self.emax))
+        if self.energies[-1]<self.emax:
+            self.eend=len(self.energies)-1
+            self.emax=self.energies[-1]
+            print('specified emax exceeds maximum energy in DOSCAR. setting emax to {}'.format(self.emax))
+                
         if 'phi' in args and args['phi']!=0:
             self.K=array([tunneling_factor(self.emax,i,args['phi']) for i in self.energies[self.estart:self.eend]])
         else:
