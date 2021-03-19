@@ -66,7 +66,7 @@ class ldos_map:
             print('not a ldos map file. exiting...')
             sys.exit()
         
-        erange=header[1][1:-1].split('-')
+        erange=header[1][1:-1].split('to')
         self.emin=float(erange[0])
         self.emax=float(erange[1])
         self.tip_disp=float(header[2][1:])
@@ -95,7 +95,7 @@ class ldos_map:
     #1 blank line
     #self.npts lines each containing self.npts ldos values
     def write_ldos(self):
-        filename='./map_E{}-{}V_D{}_X{}_N{}_W{}_U{}'.format(self.emin,self.emax,self.tip_disp,','.join(self.exclude_args),self.npts,self.phi,self.unit_cell_num)
+        filename='./map_E{}to{}V_D{}_X{}_N{}_W{}_U{}'.format(self.emin,self.emax,self.tip_disp,','.join(self.exclude_args),self.npts,self.phi,self.unit_cell_num)
         with open(filename, 'w') as file:
             file.write('DOS integrated over {} points per lattice vector'.format(self.npts))
             file.write('\nintegration performed from {} to {} V\n'.format(self.emin,self.emax))
