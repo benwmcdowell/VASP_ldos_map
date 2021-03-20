@@ -247,6 +247,21 @@ class ldos_map:
         
         return temp_ldos
     
+    #applies a gaussian smear to the calculated ldos
+    def smear_ldos(self,sigma):
+        smeared_ldos=zeros((self.npts,self.npts))
+        for i in range(self.npts):
+            for j in range(self.npts):
+                ref=array([self.x[i][j],self.y[i][j]])
+                mask=zeros((self.npts,self.npts))
+                for l in range(self.npts):
+                    for k in range(self.npts):
+                        pos=array([self.x[l][k],self.y[l][k]])
+                        mask[l][k]=exp(-norm((pos-ref))**2/2/sigma**2)
+                smeared_ldos+=mask*self.ldos
+        smeared_ldos*=norm(self.ldos)/norm(smeared_ldos)
+        self.ldos=smeared_ldos
+    
     #specifies which atoms to overlap on the ldos map
     #the argument ranges difines the range of atoms to include: [[xmin,xmax],[ymin,ymax],[zmin,zmax]]
     def overlay_atoms(self,ranges):
