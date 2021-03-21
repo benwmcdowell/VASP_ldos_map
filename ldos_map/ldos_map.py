@@ -249,16 +249,22 @@ class ldos_map:
     
     #applies a gaussian smear to the calculated ldos
     def smear_ldos(self,sigma):
-        smeared_ldos=zeros((self.npts,self.npts))
+        
+        if 'threshold' in args:
+            threshold=int(args['threshold'])*sigma
+        else:
+            threshold=sigma*4
+            
         for i in range(self.npts):
             for j in range(self.npts):
                 ref=array([self.x[i][j],self.y[i][j]])
-                mask=zeros((self.npts,self.npts))
+                smeared_ldos=zeros((self.npts,self.npts))
                 for l in range(self.npts):
                     for k in range(self.npts):
                         pos=array([self.x[l][k],self.y[l][k]])
-                        mask[l][k]=exp(-norm((pos-ref))**2/2/sigma**2)
-                smeared_ldos+=mask*self.ldos
+                        if pos-ref<threshold:
+                            smeared_ldos[i][j]+=exp(-norm((pos-ref))**2/2/sigma**2)*self.ldos[l][k]
+                            
         smeared_ldos*=norm(self.ldos)/norm(smeared_ldos)
         self.ldos=smeared_ldos
     
