@@ -76,17 +76,20 @@ class ldos_map:
         self.npts=int(header[4][1:])
         self.phi=float(header[5][1:])
         self.unit_cell_num=int(header[6][1:])
+        self.sigma=float(header[7][1:])
         
         with open(filepath,'r') as file:
             lines=file.readlines()
+            self.orbitals=lines[2].split(', ')
             self.x=array([[0.0 for i in range(self.npts)] for j in range(self.npts)])
             self.y=array([[0.0 for i in range(self.npts)] for j in range(self.npts)])
-            self.ldos=array([[0.0 for j in range(self.npts)] for i in range(self.npts)])
+            self.ldos=array([[[0.0 for j in range(self.npts)] for i in range(self.npts)] for k in range(len(self.orbitals))])
             for i in range(self.npts):
                 for j in range(self.npts):
                     self.x[i][j]=lines[4+i].split()[j]
                     self.y[i][j]=lines[5+self.npts+i].split()[j]
-                    self.ldos[i][j]=lines[6+2*self.npts+i].split()[j]
+                    for k in range(len(self.orbitals)):
+                        self.ldos[i][j]=lines[6+(2+k)*self.npts+i].split()[j]
                     
     #the ldos is written to a file in the current directory with the following format:
     #3 lines of informational header
@@ -99,16 +102,23 @@ class ldos_map:
     def write_ldos(self):
         filename='./map_E{}to{}V_D{}_X{}_N{}_W{}_U{}_S{}'.format(self.emin,self.emax,self.tip_disp,','.join(self.exclude_args),self.npts,self.phi,self.unit_cell_num,self.sigma)
         with open(filename, 'w') as file:
-            file.write('DOS integrated over {} points per lattice vector'.format(self.npts))
             file.write('\nintegration performed from {} to {} V\n'.format(self.emin,self.emax))
             file.write('atoms types excluded from DOS integration: ')
             for i in self.exclude_args:
                 file.write('{} '.format(i))
+            file.write('orbital contributions to ldos: {}'.format(', '.join(self.orbitals)))
             file.write('\n\n')
-            for axes in [self.x,self.y,self.ldos]:
+            for axes in [self.x,self.y]:
                 for i in range(self.npts):
                     for j in range(self.npts):
                         file.write(str(axes[i][j]))
+                        file.write(' ')
+                    file.write('\n')
+                file.write('\n')
+            for projection in self.ldos:
+                for i in range(self.npts):
+                    for j in range(self.npts):
+                        file.write(str(projection[i][j]))
                         file.write(' ')
                     file.write('\n')
                 file.write('\n')
@@ -154,7 +164,7 @@ class ldos_map:
         self.x=array([[0.0 for i in range(self.npts)] for j in range(self.npts)])
         self.y=array([[0.0 for i in range(self.npts)] for j in range(self.npts)])
         self.z=array([[0.0 for i in range(self.npts)] for j in range(self.npts)])
-        self.ldos=array([[0.0 for j in range(self.npts)] for i in range(self.npts)])
+        self.ldos=array([[[0.0 for j in range(self.npts)] for i in range(self.npts)] for k in range(len(self.orbitals))])
         if 'nprocs' in args:
             self.nprocs=int(args['nprocs'])
         if 'tip_disp' in args:
@@ -228,7 +238,7 @@ class ldos_map:
                         if counter-1 not in self.exclude:
                             posdiff=norm(pos-k)
                             for l in range(len(self.dos[counter])):
-                                self.ldos[i][j]+=sum(self.dos[counter][l][self.estart:self.eend]*exp(-1.0*posdiff*self.K*1.0e-10))
+                                self.ldos[l][i][j]+=sum(self.dos[counter][l][self.estart:self.eend]*exp(-1.0*posdiff*self.K*1.0e-10))
                         counter+=1
         print('total time to integrate {} points: {} seconds on {} processors'.format(self.npts**2,time()-start,self.nprocs))
     
@@ -236,7 +246,7 @@ class ldos_map:
     def integrator(self,i,j):
         from numpy import array
         pos=array([self.x[i][j],self.y[i][j],self.z[i][j]])
-        temp_ldos=array([[0.0 for i in range(self.npts)] for j in range(self.npts)])
+        temp_ldos=array([[[0.0 for i in range(self.npts)] for j in range(self.npts)] for k in range(len(self.energies))])
         counter=1
         for k in self.periodic_coord:
             if counter==sum(self.atomnums)+1:
@@ -244,7 +254,7 @@ class ldos_map:
             if counter-1 not in self.exclude:
                 posdiff=norm(pos-k)
                 for l in range(len(self.dos[counter])):
-                    temp_ldos[i][j]+=sum(self.dos[counter][l][self.estart:self.eend]*exp(-1.0*posdiff*self.K*1.0e-10))
+                    temp_ldos[l][i][j]+=sum(self.dos[counter][l][self.estart:self.eend]*exp(-1.0*posdiff*self.K*1.0e-10))
             counter+=1
         
         return temp_ldos
@@ -258,7 +268,7 @@ class ldos_map:
         else:
             threshold=sigma*5
 
-        tol=ceil(threshold/max([norm(self.lv[i]) for i in range(3)]))        
+        tol=ceil(threshold/max([norm(self.lv[i]) for i in range(2)]))        
         smeared_ldos=zeros((self.npts,self.npts))
         start=time()
         for i in range(self.npts):
@@ -290,6 +300,12 @@ class ldos_map:
     def plot_map(self,size,**args):
         if 'cmap' in args:
             self.cmap=args['cmap']
+        
+        if 'orbitals' in args:
+            orbitals_to_plot=args['orbitals']
+        else:
+            orbitals_to_plot=[i for i in range()]
+        self.ldos=sum([self.ldos[i] for i in orbitals_to_plot])
             
         if 'normalize_ldos' in args:
             normalize_ldos=args['normalize_ldos']
@@ -348,7 +364,7 @@ class ldos_map:
         atom_scatter=self.ldosax.scatter(tempx,tempy,color=colors,s=sizes)
         self.ldosax.set(xlabel='x coordinate / $\AA$')
         self.ldosax.set(ylabel='y coordinate / $\AA$')
-        self.ldosax.set(title='{} to {} V | {} $\AA$ | $\phi = {} | $\sigma = {}'.format(self.emin,self.emax,self.tip_disp,self.phi,self.sigma))
+        self.ldosax.set(title='{} to {} V | {} $\AA$ | $\phi$ = {} | $\sigma$ = {}'.format(self.emin,self.emax,self.tip_disp,self.phi,self.sigma))
         patches=[]
         for i in range(len(self.atomtypes)):
             if self.atomtypes[i] not in show_charges:
@@ -488,8 +504,9 @@ if __name__=='__main__':
     unit_cell_num=4
     npts=1
     phi=0
+    sigma=0.0
     try:
-        opts,args=getopt.getopt(sys.argv[1:],'e:n:x:p:t:u:w:',['erange=','npts=','exclude=','processors=','tip_disp=','num_unit_cells=','work_function='])
+        opts,args=getopt.getopt(sys.argv[1:],'e:n:x:p:t:u:w:s:',['erange=','npts=','exclude=','processors=','tip_disp=','num_unit_cells=','work_function=','sigma='])
     except getopt.GetoptError:
         print('error in command line syntax')
         sys.exit(2)
@@ -509,8 +526,12 @@ if __name__=='__main__':
             unit_cell_num=int(j)
         if i in ['-w','-work_function']:
             phi=float(j)
+        if i in ['-s','--sigma']:
+            sigma=float(j)
     if exists('./DOSCAR'):
         main=ldos_map('./')
         main.parse_VASP_output()
         main.calculate_ldos(npts,emax,emin,exclude=exclude,nprocs=nprocs,tip_disp=tip_disp,unit_cell_num=unit_cell_num,phi=phi)
+        if sigma>0.0:
+            main.smear_ldos(sigma)
         main.write_ldos()
