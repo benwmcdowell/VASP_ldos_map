@@ -266,9 +266,9 @@ class ldos_map:
         if 'threshold' in args:
             threshold=int(args['threshold'])*sigma
         else:
-            threshold=sigma*5
+            threshold=sigma*3
 
-        tol=array([int(ceil(threshold/norm(self.lv[i]))) for i in range(2)])
+        tol=2*self.npts*array([int(ceil(threshold/norm(self.lv[i]))) for i in range(2)])
         
         smeared_ldos=zeros((self.npts,self.npts))
         start=time()
@@ -323,7 +323,10 @@ class ldos_map:
             orbitals_to_plot=args['orbitals']
         else:
             orbitals_to_plot=[i for i in range(len(self.orbitals))]
-        self.orbitals=[self.orbitals[i] for i in orbitals_to_plot]
+        if len(orbitals_to_plot)==len(self.orbitals):
+            self.orbitals=['all']
+        else:
+            self.orbitals=[self.orbitals[i] for i in orbitals_to_plot]
         self.ldos=sum([self.ldos[i] for i in orbitals_to_plot])
         
         if 'smear' in args:
