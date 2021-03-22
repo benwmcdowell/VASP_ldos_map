@@ -12,6 +12,7 @@ from time import time
 from pathos.multiprocessing import ProcessPool
 from matplotlib.colors import Normalize
 from lib import parse_doscar,parse_poscar,parse_bader_ACF,parse_potcar,tunneling_factor
+from math import ceil
 
 class ldos_map:
     def __init__(self,filepath):
@@ -37,11 +38,12 @@ class ldos_map:
         self.charges=[]
         self.numvalence=[]
         self.ldosline=[]
-        self.zcut=[]
+        self.orbitals=[]
+        self.sigma=0.0
         
         chdir(filepath)
     
-    ### depreciated ###
+    ### depreciated: current version uses parse_ldos() ###
     #reads in the ldos file created by self.write_ldos()
     def parse_ldos_old(self,filepath):
         self.tip_disp=float(filepath.split('_')[-1])
@@ -95,7 +97,7 @@ class ldos_map:
     #1 blank line
     #self.npts lines each containing self.npts ldos values
     def write_ldos(self):
-        filename='./map_E{}to{}V_D{}_X{}_N{}_W{}_U{}'.format(self.emin,self.emax,self.tip_disp,','.join(self.exclude_args),self.npts,self.phi,self.unit_cell_num)
+        filename='./map_E{}to{}V_D{}_X{}_N{}_W{}_U{}_S{}'.format(self.emin,self.emax,self.tip_disp,','.join(self.exclude_args),self.npts,self.phi,self.unit_cell_num,self.sigma)
         with open(filename, 'w') as file:
             file.write('DOS integrated over {} points per lattice vector'.format(self.npts))
             file.write('\nintegration performed from {} to {} V\n'.format(self.emin,self.emax))
@@ -135,7 +137,7 @@ class ldos_map:
                 
         try:
             self.lv, self.coord, self.atomtypes, self.atomnums = parse_poscar(poscar)[:4]
-            self.dos, self.energies, self.ef = parse_doscar(doscar)
+            self.dos, self.energies, self.ef, self.orbitals = parse_doscar(doscar)
             self.numvalence=parse_potcar(potcar)
         except:
             print('error reading input files')
@@ -249,22 +251,28 @@ class ldos_map:
     
     #applies a gaussian smear to the calculated ldos
     def smear_ldos(self,sigma):
+        self.sigma=sigma
         
         if 'threshold' in args:
             threshold=int(args['threshold'])*sigma
         else:
-            threshold=sigma*4
-            
+            threshold=sigma*5
+
+        tol=ceil(threshold/max([norm(self.lv[i]) for i in range(3)]))        
+        smeared_ldos=zeros((self.npts,self.npts))
+        start=time()
         for i in range(self.npts):
             for j in range(self.npts):
                 ref=array([self.x[i][j],self.y[i][j]])
-                smeared_ldos=zeros((self.npts,self.npts))
-                for l in range(self.npts):
-                    for k in range(self.npts):
-                        pos=array([self.x[l][k],self.y[l][k]])
-                        if pos-ref<threshold:
-                            smeared_ldos[i][j]+=exp(-norm((pos-ref))**2/2/sigma**2)*self.ldos[l][k]
-                            
+                for k in range(self.npts):
+                    for l in range(self.npts):
+                        for m in range(-tol,tol+1):
+                            for n in range(-tol,tol+1):
+                                pos=array([self.x[k][l],self.y[k][l]])+self.lv[0][:2]*m+self.lv[1][:2]*n
+                                if norm(pos-ref)<threshold:
+                                    smeared_ldos[i][j]+=exp(-norm((pos-ref))**2/2/sigma**2)*self.ldos[l][k]
+        
+        print('total time for smearing: {} s'.format(time()-start))
         smeared_ldos*=norm(self.ldos)/norm(smeared_ldos)
         self.ldos=smeared_ldos
     
@@ -340,7 +348,7 @@ class ldos_map:
         atom_scatter=self.ldosax.scatter(tempx,tempy,color=colors,s=sizes)
         self.ldosax.set(xlabel='x coordinate / $\AA$')
         self.ldosax.set(ylabel='y coordinate / $\AA$')
-        self.ldosax.set(title='{} to {} V | {} $\AA$ | phi = {}'.format(self.emin,self.emax,self.tip_disp,self.phi))
+        self.ldosax.set(title='{} to {} V | {} $\AA$ | $\phi = {} | $\sigma = {}'.format(self.emin,self.emax,self.tip_disp,self.phi,self.sigma))
         patches=[]
         for i in range(len(self.atomtypes)):
             if self.atomtypes[i] not in show_charges:
