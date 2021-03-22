@@ -89,7 +89,7 @@ class ldos_map:
                     self.x[i][j]=lines[4+i].split()[j]
                     self.y[i][j]=lines[5+self.npts+i].split()[j]
                     for k in range(len(self.orbitals)):
-                        self.ldos[i][j]=lines[6+(2+k)*self.npts+i].split()[j]
+                        self.ldos[k][i][j]=lines[6+k+(2+k)*self.npts+i].split()[j]
                     
     #the ldos is written to a file in the current directory with the following format:
     #3 lines of informational header
@@ -102,11 +102,11 @@ class ldos_map:
     def write_ldos(self):
         filename='./map_E{}to{}V_D{}_X{}_N{}_W{}_U{}_S{}'.format(self.emin,self.emax,self.tip_disp,','.join(self.exclude_args),self.npts,self.phi,self.unit_cell_num,self.sigma)
         with open(filename, 'w') as file:
-            file.write('\nintegration performed from {} to {} V\n'.format(self.emin,self.emax))
+            file.write('integration performed from {} to {} V\n'.format(self.emin,self.emax))
             file.write('atoms types excluded from DOS integration: ')
             for i in self.exclude_args:
                 file.write('{} '.format(i))
-            file.write('orbital contributions to ldos: {}'.format(', '.join(self.orbitals)))
+            file.write('\norbital contributions to ldos: {}'.format(', '.join(self.orbitals)))
             file.write('\n\n')
             for axes in [self.x,self.y]:
                 for i in range(self.npts):
@@ -268,19 +268,37 @@ class ldos_map:
         else:
             threshold=sigma*5
 
-        tol=ceil(threshold/max([norm(self.lv[i]) for i in range(2)]))        
+        tol=array([int(ceil(threshold/norm(self.lv[i]))) for i in range(2)])
+        
         smeared_ldos=zeros((self.npts,self.npts))
         start=time()
         for i in range(self.npts):
             for j in range(self.npts):
                 ref=array([self.x[i][j],self.y[i][j]])
-                for k in range(self.npts):
-                    for l in range(self.npts):
-                        for m in range(-tol,tol+1):
-                            for n in range(-tol,tol+1):
-                                pos=array([self.x[k][l],self.y[k][l]])+self.lv[0][:2]*m+self.lv[1][:2]*n
-                                if norm(pos-ref)<threshold:
-                                    smeared_ldos[i][j]+=exp(-norm((pos-ref))**2/2/sigma**2)*self.ldos[l][k]
+                for k in range(i-tol[0],i+tol[0]+1):
+                    for l in range(j-tol[1],j+tol[1]+1):
+                        pos=zeros(2)
+                        m=k
+                        while k>self.npts-1 or k<0:
+                            if k>self.npts-1:
+                                k-=self.npts
+                                pos+=self.lv[0][:2]
+                            if k<0:
+                                k+=self.npts
+                                pos-=self.lv[0][:2]
+                        
+                        while l>self.npts-1 or l<0:
+                            if l>self.npts-1:
+                                l-=self.npts
+                                pos+=self.lv[1][:2]
+                            if l<0:
+                                l+=self.npts
+                                pos-=self.lv[1][:2]
+                        
+                        pos+=array([self.x[k][l],self.y[k][l]])        
+                        if norm(pos-ref)<threshold:
+                            smeared_ldos[i][j]+=exp(-norm((pos-ref))**2/2/sigma**2)*self.ldos[k][l]
+                        k=m
         
         print('total time for smearing: {} s'.format(time()-start))
         smeared_ldos*=norm(self.ldos)/norm(smeared_ldos)
@@ -304,8 +322,12 @@ class ldos_map:
         if 'orbitals' in args:
             orbitals_to_plot=args['orbitals']
         else:
-            orbitals_to_plot=[i for i in range()]
+            orbitals_to_plot=[i for i in range(len(self.orbitals))]
+        self.orbitals=[self.orbitals[i] for i in orbitals_to_plot]
         self.ldos=sum([self.ldos[i] for i in orbitals_to_plot])
+        
+        if 'smear' in args:
+            self.smear_ldos(float(args['smear']))
             
         if 'normalize_ldos' in args:
             normalize_ldos=args['normalize_ldos']
@@ -364,7 +386,7 @@ class ldos_map:
         atom_scatter=self.ldosax.scatter(tempx,tempy,color=colors,s=sizes)
         self.ldosax.set(xlabel='x coordinate / $\AA$')
         self.ldosax.set(ylabel='y coordinate / $\AA$')
-        self.ldosax.set(title='{} to {} V | {} $\AA$ | $\phi$ = {} | $\sigma$ = {}'.format(self.emin,self.emax,self.tip_disp,self.phi,self.sigma))
+        self.ldosax.set(title='{} to {} V | {} $\AA$ | $\phi$ = {} | $\sigma$ = {}\ncontributing orbitals: {}'.format(self.emin, self.emax, self.tip_disp, self.phi, self.sigma, ', '.join(self.orbitals)))
         patches=[]
         for i in range(len(self.atomtypes)):
             if self.atomtypes[i] not in show_charges:
@@ -377,6 +399,7 @@ class ldos_map:
             cbar.ax.yaxis.set_major_formatter(FormatStrFormatter('%+.3f'))
             
         self.ldosfig.legend(handles=patches)
+        self.ldosfig.subplots_adjust(top=0.95)
         self.ldosfig.show()
         
     def plot_ldos_slice(self,**args):
