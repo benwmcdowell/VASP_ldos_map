@@ -246,7 +246,7 @@ class ldos_map:
     def integrator(self,i,j):
         from numpy import array
         pos=array([self.x[i][j],self.y[i][j],self.z[i][j]])
-        temp_ldos=array([[[0.0 for i in range(self.npts)] for j in range(self.npts)] for k in range(len(self.energies))])
+        temp_ldos=array([[[0.0 for i in range(self.npts)] for j in range(self.npts)] for k in range(len(self.orbitals))])
         counter=1
         for k in self.periodic_coord:
             if counter==sum(self.atomnums)+1:
