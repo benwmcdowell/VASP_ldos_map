@@ -266,43 +266,43 @@ class ldos_map:
         if 'threshold' in args:
             threshold=int(args['threshold'])*sigma
         else:
-            threshold=sigma*3
+            threshold=sigma*5
 
-        tol=2*self.npts*array([int(ceil(threshold/norm(self.lv[i]))) for i in range(2)])
+        tol=2*array([int(ceil(threshold*self.npts/norm(self.lv[i]))) for i in range(2)])
+        mask=zeros((1+tol[0]*2,1+tol[1]*2))
+        for i in range(len(mask)):
+            for j in range(len(mask[i])):
+                pos=norm((i-tol[0])*self.lv[0]/self.npts+(j-tol[1])*self.lv[1]/self.npts)
+                if pos<threshold:
+                    mask[i][j]=exp(-(pos)**2/2/sigma**2)
         
         smeared_ldos=zeros((self.npts,self.npts))
         start=time()
         for i in range(self.npts):
             for j in range(self.npts):
-                ref=array([self.x[i][j],self.y[i][j]])
                 for k in range(i-tol[0],i+tol[0]+1):
+                    m=k
                     for l in range(j-tol[1],j+tol[1]+1):
-                        pos=zeros(2)
-                        m=k
-                        while k>self.npts-1 or k<0:
-                            if k>self.npts-1:
-                                k-=self.npts
-                                pos+=self.lv[0][:2]
-                            if k<0:
-                                k+=self.npts
-                                pos-=self.lv[0][:2]
-                        
-                        while l>self.npts-1 or l<0:
-                            if l>self.npts-1:
-                                l-=self.npts
-                                pos+=self.lv[1][:2]
-                            if l<0:
-                                l+=self.npts
-                                pos-=self.lv[1][:2]
-                        
-                        pos+=array([self.x[k][l],self.y[k][l]])        
-                        if norm(pos-ref)<threshold:
-                            smeared_ldos[i][j]+=exp(-norm((pos-ref))**2/2/sigma**2)*self.ldos[k][l]
-                        k=m
-        
+                        weight=mask[tol[0]-(i-m)][tol[1]-(j-l)]
+                        if weight!=0:
+                            while k>self.npts-1 or k<0:
+                                if k>self.npts-1:
+                                    k-=self.npts
+                                if k<0:
+                                    k+=self.npts
+                            
+                            while l>self.npts-1 or l<0:
+                                if l>self.npts-1:
+                                    l-=self.npts
+                                if l<0:
+                                    l+=self.npts
+                            
+                            smeared_ldos[i][j]+=weight*self.ldos[k][l]
+    
         print('total time for smearing: {} s'.format(time()-start))
         smeared_ldos*=norm(self.ldos)/norm(smeared_ldos)
         self.ldos=smeared_ldos
+        self.mask=mask
     
     #specifies which atoms to overlap on the ldos map
     #the argument ranges difines the range of atoms to include: [[xmin,xmax],[ymin,ymax],[zmin,zmax]]
@@ -558,6 +558,4 @@ if __name__=='__main__':
         main=ldos_map('./')
         main.parse_VASP_output()
         main.calculate_ldos(npts,emax,emin,exclude=exclude,nprocs=nprocs,tip_disp=tip_disp,unit_cell_num=unit_cell_num,phi=phi)
-        if sigma>0.0:
-            main.smear_ldos(sigma)
         main.write_ldos()
