@@ -44,9 +44,9 @@ def parse_doscar(filepath):
     elif num_columns==6:
         orbitals=['s_up','s_down','p_up','p_down','d_up','d_down']
     elif num_columns==9:
-        orbitals=['s','p_y','p_z','p_x','d_xy','d_yz','d_z2-r2','d_xz','d_x2-y2']
+        orbitals=['s','p_y','p_z','p_x','d_xy','d_yz','d_z2','d_xz','d_x2-y2']
     elif num_columns==18:
-        orbitals=['s_up','s_down','p_y_up','p_y_down','p_z_up','p_z_down','p_x_up','p_x_down','d_xy_up','d_xy_down','d_yz_up','d_yz_down','d_z2-r2_up','d_z2-r2_down','d_xz_up','d_xz_down','d_x2-y2_up','d_x2-y2_down']
+        orbitals=['s_up','s_down','p_y_up','p_y_down','p_z_up','p_z_down','p_x_up','p_x_down','d_xy_up','d_xy_down','d_yz_up','d_yz_down','d_z2_up','d_z2_down','d_xz_up','d_xz_down','d_x2-y2_up','d_x2-y2_down']
         
     #dos is formatted as [[total dos],[atomic_projected_dos for i in range(atomnum)]]
     #total dos has a shape of (4,nedos): [[spin up],[spin down],[integrated, spin up],[integrated spin down]]
