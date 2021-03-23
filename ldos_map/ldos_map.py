@@ -237,8 +237,9 @@ class ldos_map:
                                 counter=1
                         if counter-1 not in self.exclude:
                             posdiff=norm(pos-k)
+                            sf=exp(-1.0*posdiff*self.K*1.0e-10)
                             for l in range(len(self.dos[counter])):
-                                self.ldos[l][i][j]+=sum(self.dos[counter][l][self.estart:self.eend]*exp(-1.0*posdiff*self.K*1.0e-10))
+                                self.ldos[l][i][j]+=sum(self.dos[counter][l][self.estart:self.eend]*sf)
                         counter+=1
         print('total time to integrate {} points: {} seconds on {} processors'.format(self.npts**2,time()-start,self.nprocs))
     
@@ -253,8 +254,9 @@ class ldos_map:
                     counter=1
             if counter-1 not in self.exclude:
                 posdiff=norm(pos-k)
+                sf=exp(-1.0*posdiff*self.K*1.0e-10)
                 for l in range(len(self.dos[counter])):
-                    temp_ldos[l][i][j]+=sum(self.dos[counter][l][self.estart:self.eend]*exp(-1.0*posdiff*self.K*1.0e-10))
+                    temp_ldos[l][i][j]+=sum(self.dos[counter][l][self.estart:self.eend]*sf)
             counter+=1
         
         return temp_ldos
