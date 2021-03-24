@@ -1,4 +1,4 @@
-from numpy import array,dot,exp,linspace,where,zeros
+from numpy import array,dot,exp,linspace,where,zeros,shape
 from numpy.linalg import norm,inv
 import sys
 import matplotlib.pyplot as plt
@@ -278,7 +278,13 @@ class ldos_map:
                 if pos<threshold:
                     mask[i][j]=exp(-(pos)**2/2/sigma**2)
         
-        smeared_ldos=zeros((self.npts,self.npts))
+        #checks to see if self.ldos has already been summed for relevant orbital contributions
+        #it is faster to call this function through the plot_map method, smearing the summed ldos
+        if len(shape(self.ldos))==3:
+            smeared_ldos=zeros((shape(self.ldos)[0],self.npts,self.npts))
+        else:
+            smeared_ldos=zeros((self.npts,self.npts))
+            
         start=time()
         for i in range(self.npts):
             for j in range(self.npts):
@@ -299,10 +305,20 @@ class ldos_map:
                                 if l<0:
                                     l+=self.npts
                             
-                            smeared_ldos[i][j]+=weight*self.ldos[k][l]
+                            if len(shape(self.ldos))==3:
+                                for n in range(shape(self.ldos)[0]):
+                                    smeared_ldos[n][i][j]+=weight*self.ldos[n][k][l]
+                            else:
+                                smeared_ldos[i][j]+=weight*self.ldos[k][l]
     
         print('total time for smearing: {} s'.format(time()-start))
-        smeared_ldos*=norm(self.ldos)/norm(smeared_ldos)
+        
+        #renormalizes smeared ldos map relative to starting ldos
+        if len(shape(self.ldos))==3:
+            for n in range(shape(self.ldos)[0]):
+                smeared_ldos[n]*=norm(self.ldos[n])/norm(smeared_ldos[n])
+        else:
+            smeared_ldos*=norm(self.ldos)/norm(smeared_ldos)
         self.ldos=smeared_ldos
         self.mask=mask
     
