@@ -245,9 +245,9 @@ class ldos_map:
     
     #performs integration at single point of the x,y grid when run in parallel
     def integrator(self,i,j):
-        from numpy import array
+        from numpy import array,zeros
         pos=array([self.x[i][j],self.y[i][j],self.z[i][j]])
-        temp_ldos=array([[[0.0 for i in range(self.npts)] for j in range(self.npts)] for k in range(len(self.orbitals))])
+        temp_ldos=zeros((len(self.orbitals),self.npts,self.npts))
         counter=1
         for k in self.periodic_coord:
             if counter==sum(self.atomnums)+1:
@@ -256,7 +256,7 @@ class ldos_map:
                 posdiff=norm(pos-k)
                 sf=exp(-1.0*posdiff*self.K*1.0e-10)
                 for l in range(len(self.dos[counter])):
-                    temp_ldos[l][i][j]+=sum(self.dos[counter][l][self.estart:self.eend]*sf)
+                    temp_ldos[l][i][j]+=sum(self.dos[counter][l][self.estart:self.eend]*sf)*(self.emax-self.emin)
             counter+=1
         
         return temp_ldos
@@ -284,7 +284,7 @@ class ldos_map:
             smeared_ldos=zeros((shape(self.ldos)[0],self.npts,self.npts))
         else:
             smeared_ldos=zeros((self.npts,self.npts))
-            
+        
         start=time()
         for i in range(self.npts):
             for j in range(self.npts):
@@ -420,7 +420,8 @@ class ldos_map:
             cbar.ax.yaxis.set_major_formatter(FormatStrFormatter('%+.3f'))
             
         self.ldosfig.legend(handles=patches)
-        self.ldosfig.subplots_adjust(top=0.95)
+        self.ldosfig.subplots_adjust(top=0.9)
+        self.ldosax.set_aspect('equal')
         self.ldosfig.show()
         
     def plot_ldos_slice(self,**args):
