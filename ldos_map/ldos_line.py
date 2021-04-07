@@ -162,6 +162,16 @@ class ldos_line:
         if 'cmap' in args:
             self.cmap=args['cmap']
             
+        if 'orbitals' in args:
+            orbitals_to_plot=args['orbitals']
+        else:
+            orbitals_to_plot=[i for i in range(len(self.orbitals))]
+        if len(orbitals_to_plot)==len(self.orbitals):
+            self.orbitals=['all']
+        else:
+            self.orbitals=[self.orbitals[i] for i in orbitals_to_plot]
+        self.ldos=sum([self.ldos[i] for i in orbitals_to_plot])
+            
         if 'normalize_ldos' in args:
             normalize_ldos=args['normalize_ldos']
         else:
@@ -181,7 +191,8 @@ class ldos_line:
         
         self.ldosax.set(ylabel='distance along ldos line / $\AA$')
         self.ldosax.set(xlabel='energy - $E_f$ / eV')
-        self.ldosax.set(title='LDOS line | {} $\AA$'.format(self.tip_disp))
+        self.ldosax.set(title='{} $\AA$ | $\phi$ = {}\ncontributing orbitals: {}'.format(self.tip_disp, self.phi, ', '.join(self.orbitals)))
+        self.ldosfig.subplots_adjust(top=0.9)
         self.ldosfig.show()
         
     #take a slice of the ldos plot at a specific point in the path
