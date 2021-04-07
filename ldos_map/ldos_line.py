@@ -66,7 +66,7 @@ class ldos_line:
     #1 blank line
     #len(self.orbitals) sections each containing self.npts lines, each containing self.eend-self.estart ldos values
     def write_ldos(self):
-        filename='./map_E{}to{}V_D{}_X{}_N{}_W{}_U{}_S{}'.format(self.emin,self.emax,self.tip_disp,','.join(self.exclude_args),self.npts,self.phi,self.unit_cell_num,self.sigma)
+        filename='./map_E{}to{}V_D{}_X{}_N{}_W{}_U{}'.format(self.emin,self.emax,self.tip_disp,','.join(self.exclude_args),self.npts,self.phi,self.unit_cell_num)
         with open(filename, 'w') as file:
             file.write('integration performed from {} to {} V over {} energy points\n'.format(self.emin,self.emax,self.eend-self.estart))
             file.write('atoms types excluded from DOS integration: ')
@@ -91,6 +91,36 @@ class ldos_line:
                         file.write(' ')
                     file.write('\n')
                 file.write('\n')
+                
+    #reads in the ldos file created by self.write_ldos()
+    def parse_ldos(self,filepath):
+        header=filepath.split('_')
+        if header[0][-3:]!='line':
+            print('not a ldos line file. exiting...')
+            sys.exit()
+        
+        erange=header[1][1:-1].split('to')
+        self.emin=float(erange[0])
+        self.emax=float(erange[1])
+        self.tip_disp=float(header[2][1:])
+        self.exclude=header[3][1:].split(',')
+        self.npts=int(header[4][1:])
+        self.phi=float(header[5][1:])
+        self.unit_cell_num=int(header[6][1:])
+        
+        with open(filepath,'r') as file:
+            lines=file.readlines()
+            nedos=int(lines[0].split()[8])
+            self.orbitals=lines[2].split(', ')
+            self.path_distance=array([[0.0 for i in range(nedos)] for j in range(self.npts)])
+            self.energies=array([[0.0 for i in range(nedos)] for j in range(self.npts)])
+            self.ldos=array([[[0.0 for j in range(nedos)] for i in range(self.npts)] for k in range(len(self.orbitals))])
+            for i in range(self.npts):
+                for j in range(nedos):
+                    self.path_distance[i][j]=lines[4+i].split()[j]
+                    self.energies[i][j]=lines[5+self.npts+i].split()[j]
+                    for k in range(len(self.orbitals)):
+                        self.ldos[k][i][j]=lines[6+k+(2+k)*self.npts+i].split()[j]
         
     #sets up and performs the ldos interpolation based on the site projected DOS in DOSCAR
     def calculate_ldos(self,npts,emax,emin,lv_path,lv_origin,**args):
