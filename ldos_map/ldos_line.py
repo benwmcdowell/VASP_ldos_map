@@ -1,17 +1,13 @@
-from numpy import array,dot,exp,linspace,where,zeros,shape,sqrt
-from numpy.linalg import norm,inv
+from numpy import array,dot,exp,zeros
+from numpy.linalg import norm
 import sys
 import matplotlib.pyplot as plt
-import matplotlib.patches as mpatches
-from matplotlib.cm import bwr,ScalarMappable
-from matplotlib.ticker import FormatStrFormatter
 import getopt
 from os.path import exists,getsize
 from os import getcwd,chdir
 from time import time
 from pathos.multiprocessing import ProcessPool
-from matplotlib.colors import Normalize,LinearSegmentedColormap
-from lib import parse_doscar,parse_poscar,parse_bader_ACF,parse_potcar,tunneling_factor
+from lib import parse_doscar,parse_poscar,tunneling_factor
 
 class ldos_line:
     def __init__(self,filepath):
@@ -33,6 +29,7 @@ class ldos_line:
         self.unit_cell_num=4
         self.position_slices=0
         self.energy_slices=0
+        self.orbitals=[]
         
         chdir(filepath)
     
@@ -55,7 +52,7 @@ class ldos_line:
                 
         try:
             self.lv, self.coord, self.atomtypes, self.atomnums = parse_poscar(poscar)[:4]
-            self.dos, self.energies, self.ef = parse_doscar(doscar)
+            self.dos, self.energies, self.ef, self.orbitals = parse_doscar(doscar)
         except:
             print('error reading input files')
             sys.exit()
@@ -108,7 +105,7 @@ class ldos_line:
             print('specified emax exceeds maximum energy in DOSCAR.')
             print('integrating from {} to {} V'.format(self.emin,self.energies[-1]))
         
-        self.ldos=array([[0.0 for i in range(self.eend-self.estart)] for j in range(self.npts)])
+        self.ldos=array([[[0.0 for i in range(self.eend-self.estart)] for j in range(self.npts)] for k in range(len(self.orbitals))])
         
         if 'phi' in args and args['phi']!=0:
             self.K=array([tunneling_factor(self.emax,i,args['phi']) for i in self.energies[self.estart:self.eend]])
@@ -136,8 +133,9 @@ class ldos_line:
                             counter=1
                     if counter-1 not in self.exclude:
                         posdiff=norm(pos-k)
+                        sf=exp(-1.0*posdiff*self.K*1.0e-10)
                         for l in range(len(self.dos[counter])):
-                            self.ldos[i]+=self.dos[counter][l][self.estart:self.eend]*exp(-1.0*posdiff*self.K*1.0e-10)
+                            self.ldos[l][i]+=self.dos[counter][l][self.estart:self.eend]*sf
                     counter+=1
         print('total time to integrate {} points: {} seconds on {} processors'.format(self.npts*(self.eend-self.estart),time()-start,self.nprocs))
     
@@ -145,15 +143,16 @@ class ldos_line:
     def integrator(self,i):
         from numpy import array
         pos=array([self.x[i],self.y[i],self.z[i]])
-        temp_ldos=zeros((self.npts,self.eend-self.estart))
+        temp_ldos=zeros((len(self.orbitals),self.npts,self.eend-self.estart))
         counter=1
         for k in self.periodic_coord:
             if counter==sum(self.atomnums)+1:
                     counter=1
             if counter-1 not in self.exclude:
                 posdiff=norm(pos-k)
+                sf=exp(-1.0*posdiff*self.K*1.0e-10)
                 for l in range(len(self.dos[counter])):
-                    temp_ldos[i]+=self.dos[counter][l][self.estart:self.eend]*exp(-1.0*posdiff*self.K*1.0e-10)
+                    temp_ldos[l][i]+=self.dos[counter][l][self.estart:self.eend]*sf
             counter+=1
         
         return temp_ldos
