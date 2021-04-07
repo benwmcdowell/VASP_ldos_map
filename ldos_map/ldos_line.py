@@ -56,6 +56,41 @@ class ldos_line:
         except:
             print('error reading input files')
             sys.exit()
+            
+    #the ldos line is written to a file in the current directory with the following format:
+    #3 lines of informational header
+    #1 blank line
+    #self.npts lines containing the positional values
+    #1 blank line
+    #self.npts lines containing the energy values
+    #1 blank line
+    #len(self.orbitals) sections each containing self.npts lines, each containing self.eend-self.estart ldos values
+    def write_ldos(self):
+        filename='./map_E{}to{}V_D{}_X{}_N{}_W{}_U{}_S{}'.format(self.emin,self.emax,self.tip_disp,','.join(self.exclude_args),self.npts,self.phi,self.unit_cell_num,self.sigma)
+        with open(filename, 'w') as file:
+            file.write('integration performed from {} to {} V over {} energy points\n'.format(self.emin,self.emax,self.eend-self.estart))
+            file.write('atoms types excluded from DOS integration: ')
+            for i in self.exclude_args:
+                file.write('{} '.format(i))
+            file.write('\norbital contributions to ldos: {}'.format(', '.join(self.orbitals)))
+            file.write('\n\n')
+            for axes,k in zip([self.path_distance,self.energies],range(2)):
+                for i in range(self.npts):
+                    for j in range(self.eend-self.estart):
+                        if k==0:
+                            file.write(str(axes[i]))
+                        else:
+                            file.write(str(axes[j]))
+                        file.write(' ')
+                    file.write('\n')
+                file.write('\n')
+            for projection in self.ldos:
+                for i in range(self.npts):
+                    for j in range(self.eend-self.estart):
+                        file.write(str(projection[i][j]))
+                        file.write(' ')
+                    file.write('\n')
+                file.write('\n')
         
     #sets up and performs the ldos interpolation based on the site projected DOS in DOSCAR
     def calculate_ldos(self,npts,emax,emin,lv_path,lv_origin,**args):
@@ -67,6 +102,7 @@ class ldos_line:
         self.x=array([0.0 for i in range(self.npts)])
         self.y=array([0.0 for i in range(self.npts)])
         self.z=array([0.0 for i in range(self.npts)])
+        self.path_distance=array([norm(self.lv_path*(i+0.5)/self.npts) for i in range(self.npts)])
         if 'nprocs' in args:
             self.nprocs=int(args['nprocs'])
         if 'tip_disp' in args:
@@ -111,7 +147,7 @@ class ldos_line:
             self.K=array([tunneling_factor(self.emax,i,args['phi']) for i in self.energies[self.estart:self.eend]])
         else:
             self.K=array([1.0 for i in range(self.estart-self.eend)])
-            
+        
         for i in range(self.npts):
             pos=array([0.0,0.0,max(self.coord[:,2])+self.tip_disp])
             pos+=self.lv_origin+self.lv_path*(i+0.5)/(self.npts)
@@ -179,7 +215,6 @@ class ldos_line:
             
         self.ldosfig,self.ldosax=plt.subplots(1,1)
         
-        self.path_distance=array([norm(self.lv_path*(i+0.5)/self.npts) for i in range(self.npts)])
         #plots the ldo
         if normalize_ldos:
             ldosmap=self.ldosax.pcolormesh(array([self.energies[self.estart:self.eend] for i in range(self.npts)]),array([[self.path_distance[i] for j in range(self.eend-self.estart)] for i in range(self.npts)]),self.ldos/max([max(i) for i in self.ldos]),cmap=self.cmap,shading='nearest')
