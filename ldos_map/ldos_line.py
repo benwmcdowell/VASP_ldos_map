@@ -174,9 +174,11 @@ class ldos_line:
         self.ldos=array([[[0.0 for i in range(self.eend-self.estart)] for j in range(self.npts)] for k in range(len(self.orbitals))])
         
         if 'phi' in args and args['phi']!=0:
-            self.K=array([tunneling_factor(self.emax,i,args['phi']) for i in self.energies[self.estart:self.eend]])
+            self.phi=float(args['phi'])
+            self.K=array([tunneling_factor(abs(i),abs(i),self.phi) for i in self.energies[self.estart:self.eend]])
         else:
             self.K=array([1.0 for i in range(self.estart-self.eend)])
+            self.phi=0.0
         
         for i in range(self.npts):
             pos=array([0.0,0.0,max(self.coord[:,2])+self.tip_disp])
