@@ -16,15 +16,15 @@ from math import ceil
 
 class ldos_map:
     def __init__(self,filepath):
-        self.npts=1
+        self.npts=(1,1)
         self.emax=0
         self.emin=0
         self.estart=0
         self.eend=0
-        self.x=array([[0.0 for i in range(self.npts)] for j in range(self.npts)])
-        self.y=array([[0.0 for i in range(self.npts)] for j in range(self.npts)])
-        self.z=array([[0.0 for i in range(self.npts)] for j in range(self.npts)])
-        self.ldos=array([[0.0 for j in range(self.npts)] for i in range(self.npts)])
+        self.x=array([[0.0 for i in range(self.npts[1])] for j in range(self.npts[0])])
+        self.y=array([[0.0 for i in range(self.npts[1])] for j in range(self.npts[0])])
+        self.z=array([[0.0 for i in range(self.npts[1])] for j in range(self.npts[0])])
+        self.ldos=array([[0.0 for i in range(self.npts[1])] for j in range(self.npts[0])])
         self.exclude_args=['none']
         self.exclude=[]
         self.plot_atoms=[]
@@ -73,7 +73,10 @@ class ldos_map:
         self.emax=float(erange[1])
         self.tip_disp=float(header[2][1:])
         self.exclude=header[3][1:].split(',')
-        self.npts=int(header[4][1:])
+        if len(header[4][1:].split('x'))==1:
+            self.npts=(int(header[4][1:]),int(header[4][1:]))
+        else:
+            self.npts=(int(header[4][1:].split('x')[0]),int(header[4][1:].split('x')[1]))
         self.phi=float(header[5][1:])
         self.unit_cell_num=int(header[6][1:])
         self.sigma=float(header[7][1:])
@@ -81,15 +84,15 @@ class ldos_map:
         with open(filepath,'r') as file:
             lines=file.readlines()
             self.orbitals=lines[2].split(', ')
-            self.x=array([[0.0 for i in range(self.npts)] for j in range(self.npts)])
-            self.y=array([[0.0 for i in range(self.npts)] for j in range(self.npts)])
-            self.ldos=array([[[0.0 for j in range(self.npts)] for i in range(self.npts)] for k in range(len(self.orbitals))])
-            for i in range(self.npts):
-                for j in range(self.npts):
+            self.x=array([[0.0 for i in range(self.npts[1])] for j in range(self.npts[0])])
+            self.y=array([[0.0 for i in range(self.npts[1])] for j in range(self.npts[0])])
+            self.ldos=array([[[0.0 for j in range(self.npts[1])] for i in range(self.npts[0])] for k in range(len(self.orbitals))])
+            for i in range(self.npts[1]):
+                for j in range(self.npts[0]):
                     self.x[i][j]=lines[4+i].split()[j]
-                    self.y[i][j]=lines[5+self.npts+i].split()[j]
+                    self.y[i][j]=lines[5+self.npts[1]+i].split()[j]
                     for k in range(len(self.orbitals)):
-                        self.ldos[k][i][j]=lines[6+k+(2+k)*self.npts+i].split()[j]
+                        self.ldos[k][i][j]=lines[6+k+(2+k)*self.npts[1]+i].split()[j]
                     
     #the ldos is written to a file in the current directory with the following format:
     #3 lines of informational header
@@ -100,7 +103,7 @@ class ldos_map:
     #1 blank line
     #self.npts lines each containing self.npts ldos values
     def write_ldos(self):
-        filename='./map_E{}to{}V_D{}_X{}_N{}_W{}_U{}_S{}'.format(self.emin,self.emax,self.tip_disp,','.join(self.exclude_args),self.npts,self.phi,self.unit_cell_num,self.sigma)
+        filename='./map_E{}to{}V_D{}_X{}_N{}_W{}_U{}_S{}'.format(self.emin,self.emax,self.tip_disp,','.join(self.exclude_args),'x'.join([str(i) for i in self.npts]),self.phi,self.unit_cell_num,self.sigma)
         with open(filename, 'w') as file:
             file.write('integration performed from {} to {} V\n'.format(self.emin,self.emax))
             file.write('atoms types excluded from DOS integration: ')
@@ -109,15 +112,15 @@ class ldos_map:
             file.write('\norbital contributions to ldos: {}'.format(', '.join(self.orbitals)))
             file.write('\n\n')
             for axes in [self.x,self.y]:
-                for i in range(self.npts):
-                    for j in range(self.npts):
+                for i in range(self.npts[1]):
+                    for j in range(self.npts[0]):
                         file.write(str(axes[i][j]))
                         file.write(' ')
                     file.write('\n')
                 file.write('\n')
             for projection in self.ldos:
-                for i in range(self.npts):
-                    for j in range(self.npts):
+                for i in range(self.npts[1]):
+                    for j in range(self.npts[0]):
                         file.write(str(projection[i][j]))
                         file.write(' ')
                     file.write('\n')
@@ -161,10 +164,10 @@ class ldos_map:
         self.emin=emin
         self.npts=npts
         self.phi=args['phi']
-        self.x=array([[0.0 for i in range(self.npts)] for j in range(self.npts)])
-        self.y=array([[0.0 for i in range(self.npts)] for j in range(self.npts)])
-        self.z=array([[0.0 for i in range(self.npts)] for j in range(self.npts)])
-        self.ldos=array([[[0.0 for j in range(self.npts)] for i in range(self.npts)] for k in range(len(self.orbitals))])
+        self.x=array([[0.0 for i in range(self.npts[0])] for j in range(self.npts[1])])
+        self.y=array([[0.0 for i in range(self.npts[0])] for j in range(self.npts[1])])
+        self.z=array([[0.0 for i in range(self.npts[0])] for j in range(self.npts[1])])
+        self.ldos=array([[[0.0 for j in range(self.npts[0])] for i in range(self.npts[1])] for k in range(len(self.orbitals))])
         if 'nprocs' in args:
             self.nprocs=int(args['nprocs'])
         if 'tip_disp' in args:
@@ -214,22 +217,22 @@ class ldos_map:
         else:
             self.K=array([1.0 for i in range(self.estart-self.eend)])
             
-        for i in range(self.npts):
-            for j in range(self.npts):
+        for i in range(self.npts[1]):
+            for j in range(self.npts[0]):
                 pos=array([0.0,0.0,max(self.coord[:,2])+self.tip_disp])
-                pos+=self.lv[0]*(i+0.5)/(self.npts)+self.lv[1]*(j+0.5)/(self.npts)
+                pos+=self.lv[0]*(i+0.5)/(self.npts[1])+self.lv[1]*(j+0.5)/(self.npts[0])
                 self.x[i][j], self.y[i][j] , self.z[i][j] = pos[0], pos[1], pos[2]
         start=time()
         #executes ldos integration in parallel on a ProcessPool of self.nprocs processors
         if self.nprocs>1:
             pool=ProcessPool(self.nprocs)
-            output=pool.map(self.integrator, [i for i in range(self.npts) for j in range(self.npts)], [j for i in range(self.npts) for j in range(self.npts)])
+            output=pool.map(self.integrator, [i for i in range(self.npts[1]) for j in range(self.npts[0])], [j for i in range(self.npts[1]) for j in range(self.npts[0])])
             self.ldos=sum(output)
             pool.close()
         #executes ldos integration on a single processor
         else:
-            for i in range(self.npts):
-                for j in range(self.npts):
+            for i in range(self.npts[1]):
+                for j in range(self.npts[0]):
                     pos=array([self.x[i][j],self.y[i][j],self.z[i][j]])
                     counter=1
                     for k in self.periodic_coord:
@@ -241,13 +244,13 @@ class ldos_map:
                             for l in range(len(self.dos[counter])):
                                 self.ldos[l][i][j]+=sum(self.dos[counter][l][self.estart:self.eend]*sf)
                         counter+=1
-        print('total time to integrate {} points: {} seconds on {} processors'.format(self.npts**2,time()-start,self.nprocs))
+        print('total time to integrate {} points: {} seconds on {} processors'.format(self.npts[0]*self.npts[1],time()-start,self.nprocs))
     
     #performs integration at single point of the x,y grid when run in parallel
     def integrator(self,i,j):
         from numpy import array,zeros
         pos=array([self.x[i][j],self.y[i][j],self.z[i][j]])
-        temp_ldos=zeros((len(self.orbitals),self.npts,self.npts))
+        temp_ldos=zeros((len(self.orbitals),self.npts[1],self.npts[0]))
         counter=1
         for k in self.periodic_coord:
             if counter==sum(self.atomnums)+1:
@@ -274,7 +277,7 @@ class ldos_map:
         mask=zeros((1+tol[0]*2,1+tol[1]*2))
         for i in range(len(mask)):
             for j in range(len(mask[i])):
-                pos=norm((i-tol[0])*self.lv[0]/self.npts+(j-tol[1])*self.lv[1]/self.npts)
+                pos=norm((i-tol[0])*self.lv[0]/self.npts[0]+(j-tol[1])*self.lv[1]/self.npts[1])
                 if pos<threshold:
                     mask[i][j]=exp(-(pos)**2/2/sigma**2)
         
@@ -286,24 +289,24 @@ class ldos_map:
             smeared_ldos=zeros((self.npts,self.npts))
         
         start=time()
-        for i in range(self.npts):
-            for j in range(self.npts):
+        for i in range(self.npts[1]):
+            for j in range(self.npts[0]):
                 for k in range(i-tol[0],i+tol[0]+1):
                     m=k
                     for l in range(j-tol[1],j+tol[1]+1):
                         weight=mask[tol[0]-(i-m)][tol[1]-(j-l)]
                         if weight!=0:
-                            while k>self.npts-1 or k<0:
-                                if k>self.npts-1:
-                                    k-=self.npts
+                            while k>self.npts[1]-1 or k<0:
+                                if k>self.npts[1]-1:
+                                    k-=self.npts[1]
                                 if k<0:
-                                    k+=self.npts
+                                    k+=self.npts[1]
                             
-                            while l>self.npts-1 or l<0:
-                                if l>self.npts-1:
-                                    l-=self.npts
+                            while l>self.npts[0]-1 or l<0:
+                                if l>self.npts[0]-1:
+                                    l-=self.npts[0]
                                 if l<0:
-                                    l+=self.npts
+                                    l+=self.npts[0]
                             
                             if len(shape(self.ldos))==3:
                                 for n in range(shape(self.ldos)[0]):
@@ -436,7 +439,7 @@ class ldos_map:
         #if snap==True, the ldos line is made parallel to one of the lattice vectors
         if 'snap' in args:
             snap=True
-            points=self.npts
+            points=min(self.npts)
         else:
             snap=False
             
@@ -460,8 +463,8 @@ class ldos_map:
                     if positions[i][j]<0.0:
                         positions[i][j]+=1.0
             positions[i]=dot(positions[i],self.lv[:2,:2])
-            for j in range(self.npts):
-                for k in range(self.npts):
+            for j in range(self.npts[1]):
+                for k in range(self.npts[0]):
                     tempdiff=norm(positions[i]-array([self.x[j][k],self.y[j][k]]))
                     if mindiff>tempdiff:
                         mindiff=tempdiff
@@ -547,7 +550,7 @@ if __name__=='__main__':
     #sets the number of unit cells considered along each lattice vector
     #4 gives good results when the sampling displacement is on the same order of magnitude as the lattice vector magnitudes
     unit_cell_num=4
-    npts=1
+    npts=(1,1)
     phi=0
     sigma=0.0
     try:
@@ -560,7 +563,7 @@ if __name__=='__main__':
             emin=min([float(k) for k in j.split(',')])
             emax=max([float(k) for k in j.split(',')])
         if i in ['-n','--npts']:
-            npts=int(j)
+            npts=(int(j.split(',')[0]),int(j.split(',')[1]))
         if i in ['-x','--exclude']:
             exclude=[str(k) for k in j.split(',')]
         if i in ['-p', '--processors']:
@@ -577,4 +580,6 @@ if __name__=='__main__':
         main=ldos_map('./')
         main.parse_VASP_output()
         main.calculate_ldos(npts,emax,emin,exclude=exclude,nprocs=nprocs,tip_disp=tip_disp,unit_cell_num=unit_cell_num,phi=phi)
+        if sigma!=0:
+            main.smear_ldos(sigma)
         main.write_ldos()
