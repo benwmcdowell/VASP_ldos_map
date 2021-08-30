@@ -21,10 +21,10 @@ class ldos_map:
         self.emin=0
         self.estart=0
         self.eend=0
-        self.x=array([[0.0 for i in range(self.npts[1])] for j in range(self.npts[0])])
-        self.y=array([[0.0 for i in range(self.npts[1])] for j in range(self.npts[0])])
-        self.z=array([[0.0 for i in range(self.npts[1])] for j in range(self.npts[0])])
-        self.ldos=array([[0.0 for i in range(self.npts[1])] for j in range(self.npts[0])])
+        self.x=array([[0.0 for i in range(self.npts[0])] for j in range(self.npts[1])])
+        self.y=array([[0.0 for i in range(self.npts[0])] for j in range(self.npts[1])])
+        self.z=array([[0.0 for i in range(self.npts[0])] for j in range(self.npts[1])])
+        self.ldos=array([[0.0 for i in range(self.npts[0])] for j in range(self.npts[1])])
         self.exclude_args=['none']
         self.exclude=[]
         self.plot_atoms=[]
@@ -84,9 +84,9 @@ class ldos_map:
         with open(filepath,'r') as file:
             lines=file.readlines()
             self.orbitals=lines[2].split(', ')
-            self.x=array([[0.0 for i in range(self.npts[1])] for j in range(self.npts[0])])
-            self.y=array([[0.0 for i in range(self.npts[1])] for j in range(self.npts[0])])
-            self.ldos=array([[[0.0 for j in range(self.npts[1])] for i in range(self.npts[0])] for k in range(len(self.orbitals))])
+            self.x=array([[0.0 for i in range(self.npts[0])] for j in range(self.npts[1])])
+            self.y=array([[0.0 for i in range(self.npts[0])] for j in range(self.npts[1])])
+            self.ldos=array([[[0.0 for j in range(self.npts[0])] for i in range(self.npts[1])] for k in range(len(self.orbitals))])
             for i in range(self.npts[1]):
                 for j in range(self.npts[0]):
                     self.x[i][j]=lines[4+i].split()[j]
