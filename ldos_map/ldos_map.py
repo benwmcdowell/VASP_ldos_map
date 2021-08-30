@@ -220,7 +220,7 @@ class ldos_map:
         for i in range(self.npts[1]):
             for j in range(self.npts[0]):
                 pos=array([0.0,0.0,max(self.coord[:,2])+self.tip_disp])
-                pos+=self.lv[0]*(i+0.5)/(self.npts[1])+self.lv[1]*(j+0.5)/(self.npts[0])
+                pos+=self.lv[0]*(j+0.5)/(self.npts[0])+self.lv[1]*(i+0.5)/(self.npts[1])
                 self.x[i][j], self.y[i][j] , self.z[i][j] = pos[0], pos[1], pos[2]
         start=time()
         #executes ldos integration in parallel on a ProcessPool of self.nprocs processors
@@ -284,9 +284,9 @@ class ldos_map:
         #checks to see if self.ldos has already been summed for relevant orbital contributions
         #it is faster to call this function through the plot_map method, smearing the summed ldos
         if len(shape(self.ldos))==3:
-            smeared_ldos=zeros((shape(self.ldos)[0],self.npts,self.npts))
+            smeared_ldos=zeros((shape(self.ldos)[0],self.npts[1],self.npts[0]))
         else:
-            smeared_ldos=zeros((self.npts,self.npts))
+            smeared_ldos=zeros((self.npts[1],self.npts[0]))
         
         start=time()
         for i in range(self.npts[1]):
