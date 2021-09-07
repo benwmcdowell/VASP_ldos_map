@@ -563,7 +563,10 @@ if __name__=='__main__':
             emin=min([float(k) for k in j.split(',')])
             emax=max([float(k) for k in j.split(',')])
         if i in ['-n','--npts']:
-            npts=(int(j.split(',')[0]),int(j.split(',')[1]))
+            try:
+                npts=(int(j.split(',')[0]),int(j.split(',')[1]))
+            except IndexError:
+                npts=(int(j.split(',')[0]),int(j.split(',')[0]))
         if i in ['-x','--exclude']:
             exclude=[str(k) for k in j.split(',')]
         if i in ['-p', '--processors']:
