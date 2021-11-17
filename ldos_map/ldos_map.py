@@ -273,7 +273,7 @@ class ldos_map:
         else:
             threshold=sigma*5
 
-        tol=2*array([int(ceil(threshold*self.npts/norm(self.lv[i]))) for i in range(2)])
+        tol=2*array([int(ceil(threshold*min(self.npts)/norm(self.lv[i]))) for i in range(2)])
         mask=zeros((1+tol[0]*2,1+tol[1]*2))
         for i in range(len(mask)):
             for j in range(len(mask[i])):
@@ -380,10 +380,11 @@ class ldos_map:
                     ldosmap=self.ldosax.pcolormesh(self.x+self.lv[0][0]*i+self.lv[1][0]*j,self.y+self.lv[0][1]*i+self.lv[1][1]*j,self.ldos/max([max(i) for i in self.ldos]),cmap=self.cmap,shading='nearest')
                 else:
                     ldosmap=self.ldosax.pcolormesh(self.x+self.lv[0][0]*i+self.lv[1][0]*j,self.y+self.lv[0][1]*i+self.lv[1][1]*j,self.ldos,cmap=self.cmap,shading='nearest')
+        
                     
         if 'show_colorbar' in args:
             map_cbar=self.ldosfig.colorbar(ldosmap)
-        
+            
         #holds the position and color of each atom
         tempx=[]
         tempy=[]
