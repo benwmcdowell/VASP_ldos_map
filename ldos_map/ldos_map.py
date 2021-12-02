@@ -337,6 +337,8 @@ class ldos_map:
     
     #plots the ldos map and overlaid atoms on size+1 periodic cells
     def plot_map(self,size,**args):
+        if type(size)==int:
+            size=(size,size)
         if 'cmap' in args:
             self.cmap=args['cmap']
         
@@ -374,8 +376,8 @@ class ldos_map:
         self.ldosfig,self.ldosax=plt.subplots(1,1)
         
         #plots the ldos
-        for i in range(size+1):
-            for j in range(size+1):
+        for i in range(size[0]+1):
+            for j in range(size[1]+1):
                 if normalize_ldos:
                     ldosmap=self.ldosax.pcolormesh(self.x+self.lv[0][0]*i+self.lv[1][0]*j,self.y+self.lv[0][1]*i+self.lv[1][1]*j,self.ldos/max([max(i) for i in self.ldos]),cmap=self.cmap,shading='nearest')
                 else:
@@ -396,11 +398,11 @@ class ldos_map:
             for j in range(len(self.atomtypes)):
                 if i < sum(self.atomnums[:j+1]):
                     break
-            for k in range(size+1):
-                for l in range(size+1):
+            for k in range(size[0]+1):
+                for l in range(size[1]+1):
                     tempx.append(self.coord[i][0]+self.lv[0][0]*k+self.lv[1][0]*l)
                     tempy.append(self.coord[i][1]+self.lv[0][1]*k+self.lv[1][1]*l)
-                    sizes.append(self.atom_sizes[j]/(size+1))
+                    sizes.append(self.atom_sizes[j]/(max(size)+1))
                     if self.atomtypes[j] in show_charges:
                         colors.append(bwr(cnorm(charge_list[counter])))
                     else:
