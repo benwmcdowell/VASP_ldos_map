@@ -13,6 +13,7 @@ from pathos.multiprocessing import ProcessPool
 from matplotlib.colors import Normalize
 from lib import parse_doscar,parse_poscar,parse_bader_ACF,parse_potcar,tunneling_factor
 from math import ceil
+from matplotlib.animation import FuncAnimation
 
 class ldos_map:
     def __init__(self,filepath):
@@ -543,6 +544,89 @@ class ldos_map:
             charges=parse_bader_ACF('./ACF.dat')[3]
         self.charges=charges
         
+def plot_moving_maps(plot_type,steps,directory,filepath,**args):
+    if 'cmap' in args:
+        cmap=args['cmap']
+    else:
+        cmap=plt.rcParams['image.cmap']
+        
+    header=filepath.split('_')
+    if header[0][-3:]!='map':
+        print('not a ldos map file. exiting...')
+        sys.exit()
+    
+    erange=header[1][1:-1].split('to')
+    emin=float(erange[0])
+    emax=float(erange[1])
+    tip_disp=float(header[2][1:])
+    exclude=header[3][1:].split(',')
+    if len(header[4][1:].split('x'))==1:
+        npts=(int(header[4][1:]),int(header[4][1:]))
+    else:
+        npts=(int(header[4][1:].split('x')[0]),int(header[4][1:].split('x')[1]))
+    phi=float(header[5][1:])
+    unit_cell_num=int(header[6][1:])
+    sigma=float(header[7][1:])
+    
+    #plots the overlaid atoms as a scatterplot
+    tempvar=ldos_map(directory)
+    tempvar.parse_VASP_output()
+    tempvar.overlay_atoms([[-100,100],[-100,100],[4,100]])
+    tempvar.set_atom_appearance(['grey','pink','purple'],[500,500,500])
+    atomx=[]
+    atomy=[]
+    atomsize=[]
+    atomcolors=[]
+    for i in tempvar.plot_atoms:
+        for j in range(len(tempvar.atomtypes)):
+            if i < sum(tempvar.atomnums[:j+1]):
+                break
+            atomx.append(tempvar.coord[i][0])
+            atomy.append(tempvar.coord[i][1])
+            atomsize.append(tempvar.atom_sizes[j])
+            atomcolors.append(tempvar.atom_colors[j])
+    
+    xdata=zeros((npts[1],npts[0]))
+    ydata=zeros((npts[1],npts[0]))
+    zdata=zeros((len(steps),npts[1],npts[0]))
+    for i in range(len(steps)):
+        if plot_type=='energy':
+            emin=steps[i][0]
+            emax=steps[i][1]
+        if plot_type=='height':
+            tip_disp=steps[i]
+        filename='./map_E{}to{}V_D{}_X{}_N{}_W{}_U{}_S{}'.format(emin,emax,tip_disp,','.join(exclude),'x'.join([str(i) for i in npts]),phi,unit_cell_num,sigma)
+        tempvar=ldos_map(directory)
+        tempvar.parse_ldos(filename)
+        xdata=tempvar.x
+        ydata=tempvar.y
+        zdata[i]+=sum([tempvar.ldos[j,:,:] for j in range(shape(tempvar.ldos)[0])])
+    
+    fig,axs=plt.subplots(1,2,gridspec_kw={'width_ratios': [3,1]})
+    mesh=axs[0].pcolormesh(xdata,ydata,zdata[0],cmap=cmap,shading='nearest')
+    pointer=axs[1].add_patch(mpatches.Rectangle((0,steps[0][0]),1,steps[0][1]-steps[0][0]))
+    if len(shape(steps))==1:
+        axs[1].set(xlim=(0,1),ylim=(steps[0],steps[-1]))
+    else:
+        axs[1].set(xlim=(0,1),ylim=(steps[0][0],steps[-1][1]))
+    atomscatter=axs[0].scatter(atomx,atomy,s=atomsize,color=atomcolors)
+    axs[0].set_aspect('equal')
+    
+    def animate(i):
+        for j in range(2):
+            axs[j].cla()
+        if len(shape(steps))==1:
+            axs[1].set(xlim=(0,1),ylim=(steps[0],steps[-1]))
+        else:
+            axs[1].set(xlim=(0,1),ylim=(steps[0][0],steps[-1][1]))
+        mesh=axs[0].pcolormesh(xdata,ydata,zdata[i],cmap=cmap,shading='nearest')
+        pointer=axs[1].add_patch(mpatches.Rectangle((0,steps[i][0]),1,steps[0][1]-steps[0][0]))
+        atomscatter=axs[0].scatter(atomx,atomy,s=atomsize,color=atomcolors)
+        return mesh,pointer,atomscatter
+
+    anim=FuncAnimation(fig,animate,interval=400,frames=len(steps),repeat=True,repeat_delay=1000)
+    fig.show()
+    return anim
 
 if __name__=='__main__':
     sys.path.append(getcwd())
