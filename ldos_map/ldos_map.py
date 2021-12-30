@@ -327,7 +327,7 @@ class ldos_map:
         self.mask=mask
     
     #specifies which atoms to overlap on the ldos map
-    #the argument ranges difines the range of atoms to include: [[xmin,xmax],[ymin,ymax],[zmin,zmax]]
+    #the argument ranges defines the range of atoms to include: [[xmin,xmax],[ymin,ymax],[zmin,zmax]]
     def overlay_atoms(self,ranges):
         for i in range(sum(self.atomnums)):
             for j in range(3):
@@ -572,7 +572,7 @@ def plot_moving_maps(plot_type,steps,directory,filepath,**args):
     tempvar=ldos_map(directory)
     tempvar.parse_VASP_output()
     tempvar.overlay_atoms([[-100,100],[-100,100],[4,100]])
-    tempvar.set_atom_appearance(['grey','pink','purple'],[500,500,500])
+    tempvar.set_atom_appearance(['grey','pink','purple'],[200,200,200])
     atomx=[]
     atomy=[]
     atomsize=[]
@@ -581,10 +581,10 @@ def plot_moving_maps(plot_type,steps,directory,filepath,**args):
         for j in range(len(tempvar.atomtypes)):
             if i < sum(tempvar.atomnums[:j+1]):
                 break
-            atomx.append(tempvar.coord[i][0])
-            atomy.append(tempvar.coord[i][1])
-            atomsize.append(tempvar.atom_sizes[j])
-            atomcolors.append(tempvar.atom_colors[j])
+        atomx.append(tempvar.coord[i][0])
+        atomy.append(tempvar.coord[i][1])
+        atomsize.append(tempvar.atom_sizes[j])
+        atomcolors.append(tempvar.atom_colors[j])
     
     xdata=zeros((npts[1],npts[0]))
     ydata=zeros((npts[1],npts[0]))
@@ -611,6 +611,13 @@ def plot_moving_maps(plot_type,steps,directory,filepath,**args):
         axs[1].set(xlim=(0,1),ylim=(steps[0][0],steps[-1][1]))
     atomscatter=axs[0].scatter(atomx,atomy,s=atomsize,color=atomcolors)
     axs[0].set_aspect('equal')
+    axs[1].yaxis.tick_right()
+    axs[1].set_xticklabels([])
+    axs[0].set(xlabel='position / $\AA$',ylabel='position / $\AA$')
+    if plot_type=='energy':
+        axs[1].set(ylabel='energy / eV')
+    if plot_type=='height':
+        axs[1].set(ylabel='height / $\AA$')
     
     def animate(i):
         for j in range(2):
@@ -619,6 +626,14 @@ def plot_moving_maps(plot_type,steps,directory,filepath,**args):
             axs[1].set(xlim=(0,1),ylim=(steps[0],steps[-1]))
         else:
             axs[1].set(xlim=(0,1),ylim=(steps[0][0],steps[-1][1]))
+        axs[0].set_aspect('equal')
+        axs[1].yaxis.tick_right()
+        axs[1].set_xticklabels([])
+        axs[0].set(xlabel='position / $\AA$',ylabel='position / $\AA$')
+    if plot_type=='energy':
+        axs[1].set(ylabel='energy / eV')
+    if plot_type=='height':
+        axs[1].set(ylabel='height / $\AA$')
         mesh=axs[0].pcolormesh(xdata,ydata,zdata[i],cmap=cmap,shading='nearest')
         pointer=axs[1].add_patch(mpatches.Rectangle((0,steps[i][0]),1,steps[0][1]-steps[0][0]))
         atomscatter=axs[0].scatter(atomx,atomy,s=atomsize,color=atomcolors)
