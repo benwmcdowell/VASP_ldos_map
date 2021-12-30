@@ -335,8 +335,12 @@ class ldos_map:
                     break
             else:
                 self.plot_atoms.append(i)
+                
+    #normalize ldos map to another ldos map object
+    def normalize_to(self,ref):
+        self.ldos/=ref.ldos
     
-    #plots the ldos map and overlaid atoms on size+1 periodic cells
+    #plots the ldos map and overlaid atoms on size[0]+1 by size[1]+1 periodic cells
     def plot_map(self,size,**args):
         if type(size)==int:
             size=(size,size)
@@ -630,10 +634,10 @@ def plot_moving_maps(plot_type,steps,directory,filepath,**args):
         axs[1].yaxis.tick_right()
         axs[1].set_xticklabels([])
         axs[0].set(xlabel='position / $\AA$',ylabel='position / $\AA$')
-    if plot_type=='energy':
-        axs[1].set(ylabel='energy / eV')
-    if plot_type=='height':
-        axs[1].set(ylabel='height / $\AA$')
+        if plot_type=='energy':
+            axs[1].set(ylabel='energy / eV')
+        if plot_type=='height':
+            axs[1].set(ylabel='height / $\AA$')
         mesh=axs[0].pcolormesh(xdata,ydata,zdata[i],cmap=cmap,shading='nearest')
         pointer=axs[1].add_patch(mpatches.Rectangle((0,steps[i][0]),1,steps[0][1]-steps[0][0]))
         atomscatter=axs[0].scatter(atomx,atomy,s=atomsize,color=atomcolors)
