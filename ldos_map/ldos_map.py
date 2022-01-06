@@ -548,11 +548,17 @@ class ldos_map:
             charges=parse_bader_ACF('./ACF.dat')[3]
         self.charges=charges
         
+#animates a series of ldos maps to show the evolution of spatial features with respect to some other variable (e.g. tip height, energy, etc)
 def plot_moving_maps(plot_type,steps,directory,filepath,**args):
     if 'cmap' in args:
         cmap=args['cmap']
     else:
         cmap=plt.rcParams['image.cmap']
+        
+    if 'normalize_to' in args:
+        ref=args['normalize_to']
+    else:
+        ref=False
         
     header=filepath.split('_')
     if header[0][-3:]!='map':
@@ -602,11 +608,14 @@ def plot_moving_maps(plot_type,steps,directory,filepath,**args):
         filename='./map_E{}to{}V_D{}_X{}_N{}_W{}_U{}_S{}'.format(emin,emax,tip_disp,','.join(exclude),'x'.join([str(i) for i in npts]),phi,unit_cell_num,sigma)
         tempvar=ldos_map(directory)
         tempvar.parse_ldos(filename)
+        if ref:
+            tempvar.normalize_to(ref)
         xdata=tempvar.x
         ydata=tempvar.y
         zdata[i]+=sum([tempvar.ldos[j,:,:] for j in range(shape(tempvar.ldos)[0])])
     
     fig,axs=plt.subplots(1,2,gridspec_kw={'width_ratios': [3,1]})
+    fig.tight_layout()
     mesh=axs[0].pcolormesh(xdata,ydata,zdata[0],cmap=cmap,shading='nearest')
     pointer=axs[1].add_patch(mpatches.Rectangle((0,steps[0][0]),1,steps[0][1]-steps[0][0]))
     if len(shape(steps))==1:
@@ -622,6 +631,7 @@ def plot_moving_maps(plot_type,steps,directory,filepath,**args):
         axs[1].set(ylabel='energy / eV')
     if plot_type=='height':
         axs[1].set(ylabel='height / $\AA$')
+    axs[1].yaxis.set_label_position("right")
     
     def animate(i):
         for j in range(2):
@@ -643,7 +653,7 @@ def plot_moving_maps(plot_type,steps,directory,filepath,**args):
         atomscatter=axs[0].scatter(atomx,atomy,s=atomsize,color=atomcolors)
         return mesh,pointer,atomscatter
 
-    anim=FuncAnimation(fig,animate,interval=400,frames=len(steps),repeat=True,repeat_delay=1000)
+    anim=FuncAnimation(fig,animate,interval=800,frames=len(steps),repeat=True,repeat_delay=1000)
     fig.show()
     return anim
 
