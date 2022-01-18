@@ -560,6 +560,11 @@ def plot_moving_maps(plot_type,steps,directory,filepath,**args):
     else:
         ref=False
         
+    if 'animate_interval' in args:
+        aint=args['animate_interval']
+    else:
+        aint=800
+        
     header=filepath.split('_')
     if header[0][-3:]!='map':
         print('not a ldos map file. exiting...')
@@ -653,7 +658,7 @@ def plot_moving_maps(plot_type,steps,directory,filepath,**args):
         atomscatter=axs[0].scatter(atomx,atomy,s=atomsize,color=atomcolors)
         return mesh,pointer,atomscatter
 
-    anim=FuncAnimation(fig,animate,interval=800,frames=len(steps),repeat=True,repeat_delay=1000)
+    anim=FuncAnimation(fig,animate,interval=aint,frames=len(steps),repeat=True,repeat_delay=1000)
     fig.show()
     return anim
 
