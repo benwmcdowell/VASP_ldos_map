@@ -5,7 +5,7 @@ import subprocess
 
 #submits n jobs with values ranging from minval to maxval
 def batch_submit_energies(fname,emin,emax,n,de):
-    erange=[[emin+de*i,emax+de*i] for i in range(n)]
+    erange=[[emin+de[0]*i,emax+de[1]*i] for i in range(n)]
     for i in range(n):
         with open(fname,'r') as f:
             lines=f.readlines()
@@ -31,7 +31,7 @@ if __name__ == '__main__':
     job_type=None
     n=1
     val_range=[0,1]
-    de=0
+    de=(0,0)
     try:
         opts,args=getopt.getopt(sys.argv[1:],'j:f:n:v:d:',['job_type=','filepath=','npoints=','value_range==','step='])
     except getopt.GetoptError:
@@ -47,7 +47,7 @@ if __name__ == '__main__':
         if i in ['-v','--value_range']:
             val_range=[float(k) for k in j.split(',')]
         if i in ['-d','--step']:
-            de=float(j)
+            de=[float(k) for k in j.split(',')]
             
     if not job_type:
         print('no batch submission type selected')
