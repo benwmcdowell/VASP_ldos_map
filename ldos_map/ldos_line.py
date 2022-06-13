@@ -1,5 +1,6 @@
 from numpy import array,dot,exp,zeros
 from numpy.linalg import norm
+import numpy as np
 import sys
 import matplotlib.pyplot as plt
 import getopt
@@ -66,7 +67,7 @@ class ldos_line:
     #1 blank line
     #len(self.orbitals) sections each containing self.npts lines, each containing self.eend-self.estart ldos values
     def write_ldos(self):
-        filename='./map_E{}to{}V_D{}_X{}_N{}_W{}_U{}'.format(self.emin,self.emax,self.tip_disp,','.join(self.exclude_args),self.npts,self.phi,self.unit_cell_num)
+        filename='./line_E{}to{}V_D{}_X{}_N{}_W{}_U{}'.format(self.emin,self.emax,self.tip_disp,','.join(self.exclude_args),self.npts,self.phi,self.unit_cell_num)
         with open(filename, 'w') as file:
             file.write('integration performed from {} to {} V over {} energy points\n'.format(self.emin,self.emax,self.eend-self.estart))
             file.write('atoms types excluded from DOS integration: ')
@@ -122,6 +123,13 @@ class ldos_line:
                     for k in range(len(self.orbitals)):
                         self.ldos[k][i][j]=lines[6+k+(2+k)*self.npts+i].split()[j]
         
+    def reference_ldos(self,ref_filepath):
+        ref=ldos_line(ref_filepath)
+        ref.parse_VASP_output()
+        ref_emax=ref.energies[self.eend]-ref.energies[self.estart]+self.emin
+        ref.calculate_ldos(self.npts,ref_emax,self.emin,self.lv_path,self.lv_origin,phi=self.phi,unit_cell_num=unit_cell_num,exclude=self.exclude)
+        self.ldos-=ref.ldos
+        
     #sets up and performs the ldos interpolation based on the site projected DOS in DOSCAR
     def calculate_ldos(self,npts,emax,emin,lv_path,lv_origin,**args):
         self.emax=emax
@@ -171,7 +179,7 @@ class ldos_line:
             print('specified emax exceeds maximum energy in DOSCAR.')
             print('integrating from {} to {} V'.format(self.emin,self.energies[-1]))
         
-        self.ldos=array([[[0.0 for i in range(self.eend-self.estart)] for j in range(self.npts)] for k in range(len(self.orbitals))])
+        self.ldos=zeros((len(self.orbitals),self.npts,self.eend-self.estart))
         
         if 'phi' in args and args['phi']!=0:
             self.phi=float(args['phi'])
@@ -188,7 +196,7 @@ class ldos_line:
         #executes ldos integration in parallel on a ProcessPool of self.nprocs processors
         if self.nprocs>1:
             pool=ProcessPool(self.nprocs)
-            output=pool.map(self.integrator, [i for i in range(self.npts) for j in range(self.npts)], [j for i in range(self.npts) for j in range(self.npts)])
+            output=pool.map(self.integrator, [i for i in range(self.npts)])
             self.ldos=sum(output)
             pool.close()
         #executes ldos integration on a single processor
@@ -247,9 +255,9 @@ class ldos_line:
             
         self.ldosfig,self.ldosax=plt.subplots(1,1)
         
-        #plots the ldo
+        #plots the ldos
         if normalize_ldos:
-            ldosmap=self.ldosax.pcolormesh(array([self.energies[self.estart:self.eend] for i in range(self.npts)]),array([[self.path_distance[i] for j in range(self.eend-self.estart)] for i in range(self.npts)]),self.ldos/max([max(i) for i in self.ldos]),cmap=self.cmap,shading='nearest')
+            ldosmap=self.ldosax.pcolormesh(array([self.energies[self.estart:self.eend] for i in range(self.npts)]),array([[self.path_distance[i] for j in range(self.eend-self.estart)] for i in range(self.npts)]),self.ldos/np.max(self.ldos),cmap=self.cmap,shading='nearest')
         else:
             ldosmap=self.ldosax.pcolormesh(array([self.energies[self.estart:self.eend] for i in range(self.npts)]),array([[self.path_distance[i] for j in range(self.eend-self.estart)] for i in range(self.npts)]),self.ldos,cmap=self.cmap,shading='nearest')
                 
