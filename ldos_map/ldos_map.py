@@ -3,7 +3,7 @@ from numpy.linalg import norm,inv
 import sys
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
-from matplotlib.cm import bwr,ScalarMappable
+from matplotlib.cm import bwr,ScalarMappable,jet
 from matplotlib.ticker import FormatStrFormatter
 import getopt
 from os.path import exists,getsize
@@ -373,10 +373,15 @@ class ldos_map:
                     if i < sum(self.atomnums[:j+1]):
                         break
                 if self.atomtypes[j] in show_charges:
-                    charge_list.append(self.numvalence[j]-self.charges[i])
+                    charge_list.append(self.charges[i]-self.numvalence[j])
             cnorm=Normalize(vmin=min(charge_list),vmax=max(charge_list))
         else:
             show_charges=[]
+        
+        if 'clim' in args:
+            clim=args['clim']
+        else:
+            clim=(0.0,1.0)
         
         self.ldosfig,self.ldosax=plt.subplots(1,1)
         
@@ -386,7 +391,7 @@ class ldos_map:
                 if normalize_ldos:
                     ldosmap=self.ldosax.pcolormesh(self.x+self.lv[0][0]*i+self.lv[1][0]*j,self.y+self.lv[0][1]*i+self.lv[1][1]*j,self.ldos/max([max(i) for i in self.ldos]),cmap=self.cmap,shading='nearest')
                 else:
-                    ldosmap=self.ldosax.pcolormesh(self.x+self.lv[0][0]*i+self.lv[1][0]*j,self.y+self.lv[0][1]*i+self.lv[1][1]*j,self.ldos,cmap=self.cmap,shading='nearest')
+                    ldosmap=self.ldosax.pcolormesh(self.x+self.lv[0][0]*i+self.lv[1][0]*j,self.y+self.lv[0][1]*i+self.lv[1][1]*j,self.ldos,cmap=self.cmap,shading='nearest',vmin=clim[0],vmax=clim[1])
         
                     
         if 'show_colorbar' in args:
@@ -409,7 +414,7 @@ class ldos_map:
                     tempy.append(self.coord[i][1]+self.lv[0][1]*k+self.lv[1][1]*l)
                     sizes.append(self.atom_sizes[j]/(max(size)+1))
                     if self.atomtypes[j] in show_charges:
-                        colors.append(bwr(cnorm(charge_list[counter])))
+                        colors.append(jet(cnorm(charge_list[counter])))
                     else:
                         colors.append(self.atom_colors[j])
             if self.atomtypes[j] in show_charges:
@@ -426,8 +431,8 @@ class ldos_map:
                 
         #if bader charges are plotted, a colorbar is displayed
         if len(show_charges)>0:
-            cbar=self.ldosfig.colorbar(ScalarMappable(norm=cnorm,cmap=bwr))
-            cbar.set_label('net charge of {}'.format(', '.join(show_charges)))
+            cbar=self.ldosfig.colorbar(ScalarMappable(norm=cnorm,cmap=jet))
+            cbar.set_label('net electron count of {}'.format(', '.join(show_charges)))
             cbar.ax.yaxis.set_major_formatter(FormatStrFormatter('%+.3f'))
             
         self.ldosfig.legend(handles=patches)
@@ -542,8 +547,8 @@ class ldos_map:
     
     #reads in charges calculated by Bader analysis
     def overlay_bader_charges(self,**args):
-        if 'input' in args:
-            charges=parse_bader_ACF(args['input'])[3]
+        if 'filepath' in args:
+            charges=parse_bader_ACF(args['filepath'])[3]
         else:
             charges=parse_bader_ACF('./ACF.dat')[3]
         self.charges=charges
@@ -564,6 +569,21 @@ def plot_moving_maps(plot_type,steps,directory,filepath,**args):
         aint=args['animate_interval']
     else:
         aint=800
+        
+    if 'overlay_atoms' in args:
+        overlay=args['overlay_atoms']
+    else:
+        overlay=[[-1000,1000],[-1000,1000],[4,1000]]
+        
+    if 'atom_appearance' in args:
+        atom_appearance=args['atom_appearance']
+    else:
+        atom_appearance=['grey','pink','purple']
+        
+    if 'atom_size' in args:
+        atom_size=args['atom_size']
+    else:
+        atom_size=[25,25,25]
         
     header=filepath.split('_')
     if header[0][-3:]!='map':
@@ -586,8 +606,8 @@ def plot_moving_maps(plot_type,steps,directory,filepath,**args):
     #plots the overlaid atoms as a scatterplot
     tempvar=ldos_map(directory)
     tempvar.parse_VASP_output()
-    tempvar.overlay_atoms([[-100,100],[-100,100],[4,100]])
-    tempvar.set_atom_appearance(['grey','pink','purple'],[200,200,200])
+    tempvar.overlay_atoms(overlay)
+    tempvar.set_atom_appearance(atom_appearance,atom_size)
     atomx=[]
     atomy=[]
     atomsize=[]
@@ -654,7 +674,7 @@ def plot_moving_maps(plot_type,steps,directory,filepath,**args):
         if plot_type=='height':
             axs[1].set(ylabel='height / $\AA$')
         mesh=axs[0].pcolormesh(xdata,ydata,zdata[i],cmap=cmap,shading='nearest')
-        pointer=axs[1].add_patch(mpatches.Rectangle((0,steps[i][0]),1,steps[0][1]-steps[0][0]))
+        pointer=axs[1].add_patch(mpatches.Rectangle((0,steps[i][0]),1,steps[i][1]-steps[i][0],edgecolor='black',facecolor='grey'))
         atomscatter=axs[0].scatter(atomx,atomy,s=atomsize,color=atomcolors)
         return mesh,pointer,atomscatter
 
