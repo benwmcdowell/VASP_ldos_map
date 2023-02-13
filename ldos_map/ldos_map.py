@@ -341,7 +341,7 @@ class ldos_map:
         self.ldos/=ref.ldos
     
     #plots the ldos map and overlaid atoms on size[0]+1 by size[1]+1 periodic cells
-    def plot_map(self,size,**args):
+    def plot_map(self,size,equalize_cbar=False,**args):
         if type(size)==int:
             size=(size,size)
         if 'cmap' in args:
@@ -374,7 +374,11 @@ class ldos_map:
                         break
                 if self.atomtypes[j] in show_charges:
                     charge_list.append(self.charges[i]-self.numvalence[j])
-            cnorm=Normalize(vmin=min(charge_list),vmax=max(charge_list))
+            if not equalize_cbar:
+                cnorm=Normalize(vmin=min(charge_list),vmax=max(charge_list))
+            else:
+                max_val=max([abs(min(charge_list)),abs(max(charge_list))])
+                cnorm=Normalize(vmin=-max_val,vmax=max_val)
         else:
             show_charges=[]
         
@@ -414,7 +418,7 @@ class ldos_map:
                     tempy.append(self.coord[i][1]+self.lv[0][1]*k+self.lv[1][1]*l)
                     sizes.append(self.atom_sizes[j]/(max(size)+1))
                     if self.atomtypes[j] in show_charges:
-                        colors.append(jet(cnorm(charge_list[counter])))
+                        colors.append(bwr(cnorm(charge_list[counter])))
                     else:
                         colors.append(self.atom_colors[j])
             if self.atomtypes[j] in show_charges:
@@ -431,7 +435,7 @@ class ldos_map:
                 
         #if bader charges are plotted, a colorbar is displayed
         if len(show_charges)>0:
-            cbar=self.ldosfig.colorbar(ScalarMappable(norm=cnorm,cmap=jet))
+            cbar=self.ldosfig.colorbar(ScalarMappable(norm=cnorm,cmap=bwr))
             cbar.set_label('net electron count of {}'.format(', '.join(show_charges)))
             cbar.ax.yaxis.set_major_formatter(FormatStrFormatter('%+.3f'))
             
