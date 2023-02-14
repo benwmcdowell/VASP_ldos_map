@@ -1,4 +1,4 @@
-from numpy import array,dot,exp,linspace,where,zeros,shape
+from numpy import array,dot,exp,linspace,where,zeros,shape,average
 from numpy.linalg import norm,inv
 import sys
 import matplotlib.pyplot as plt
@@ -341,7 +341,7 @@ class ldos_map:
         self.ldos/=ref.ldos
     
     #plots the ldos map and overlaid atoms on size[0]+1 by size[1]+1 periodic cells
-    def plot_map(self,size,equalize_cbar=False,**args):
+    def plot_map(self,size,equalize_cbar=False,normalize_bader_to_atomtype=False,**args):
         if type(size)==int:
             size=(size,size)
         if 'cmap' in args:
@@ -373,7 +373,10 @@ class ldos_map:
                     if i < sum(self.atomnums[:j+1]):
                         break
                 if self.atomtypes[j] in show_charges or i in show_charges:
-                    charge_list.append(self.charges[i]-self.numvalence[j])
+                    if not normalize_bader_to_atomtype:
+                        charge_list.append(self.charges[i]-self.numvalence[j])
+                    else:
+                        charge_list.append(self.charges[i]-average(self.charges[sum(self.atomnums[:j]):sum(self.atomnums[:j+1])]))
             if not equalize_cbar:
                 cnorm=Normalize(vmin=min(charge_list),vmax=max(charge_list))
             else:
