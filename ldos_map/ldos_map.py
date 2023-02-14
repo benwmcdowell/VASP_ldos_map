@@ -372,7 +372,7 @@ class ldos_map:
                 for j in range(len(self.atomtypes)):
                     if i < sum(self.atomnums[:j+1]):
                         break
-                if self.atomtypes[j] in show_charges:
+                if self.atomtypes[j] in show_charges or i in show_charges:
                     charge_list.append(self.charges[i]-self.numvalence[j])
             if not equalize_cbar:
                 cnorm=Normalize(vmin=min(charge_list),vmax=max(charge_list))
@@ -417,11 +417,11 @@ class ldos_map:
                     tempx.append(self.coord[i][0]+self.lv[0][0]*k+self.lv[1][0]*l)
                     tempy.append(self.coord[i][1]+self.lv[0][1]*k+self.lv[1][1]*l)
                     sizes.append(self.atom_sizes[j]/(max(size)+1))
-                    if self.atomtypes[j] in show_charges:
+                    if self.atomtypes[j] in show_charges or i in show_charges:
                         colors.append(bwr(cnorm(charge_list[counter])))
                     else:
                         colors.append(self.atom_colors[j])
-            if self.atomtypes[j] in show_charges:
+            if self.atomtypes[j] in show_charges or i in show_charges:
                 counter+=1
                         
         atom_scatter=self.ldosax.scatter(tempx,tempy,color=colors,s=sizes)
@@ -436,7 +436,8 @@ class ldos_map:
         #if bader charges are plotted, a colorbar is displayed
         if len(show_charges)>0:
             cbar=self.ldosfig.colorbar(ScalarMappable(norm=cnorm,cmap=bwr))
-            cbar.set_label('net electron count of {}'.format(', '.join(show_charges)))
+            if type(show_charges[0])==str:
+                cbar.set_label('net electron count of {}'.format(', '.join(show_charges)))
             cbar.ax.yaxis.set_major_formatter(FormatStrFormatter('%+.3f'))
             
         self.ldosfig.legend(handles=patches)
