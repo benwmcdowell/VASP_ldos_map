@@ -252,7 +252,7 @@ class ldos_line:
             self.ldos[i,:]=gaussian_filter(self.ldos[i,:],dx,mode='wrap')
         
     #plots the ldos map and overlaid atoms on size+1 periodic cells
-    def plot_map(self,**args):
+    def plot_map(self,norm_range=False,dx=0,**args):
         if 'cmap' in args:
             self.cmap=args['cmap']
             
@@ -270,6 +270,11 @@ class ldos_line:
             normalize_ldos=args['normalize_ldos']
         else:
             normalize_ldos=True
+            
+        if norm_range:
+            self.normalize_position_slices(norm_range=norm_range)
+        if dx!=0:
+            self.smear_spatial(dx)
             
         self.ldosfig,self.ldosax=plt.subplots(1,1)
         
