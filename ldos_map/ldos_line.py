@@ -235,21 +235,21 @@ class ldos_line:
         return temp_ldos
     
     def normalize_position_slices(self,norm_range='full'):
-        zero_e=np.argmin(abs(self.energies))
+        zero_e=np.argmin(abs(self.energies))-self.estart
         if norm_range=='full':
             for i in range(self.npts):
-                self.ldos[:,i]/=sum(self.ldos[self.estart:self.eend,i])
+                self.ldos[i,:]/=sum(self.ldos[i,:self.eend-self.estart])
         if norm_range=='positive':
             for i in range(self.npts):
-                self.ldos[:,i]/=sum(self.ldos[zero_e:self.eend,i])
+                self.ldos[i,:]/=sum(self.ldos[i,zero_e:self.eend-self.estart])
         if norm_range=='negative':
             for i in range(self.npts):
-                self.ldos[:,i]/=sum(self.ldos[self.estart:zero_e,i])
+                self.ldos[i,:]/=sum(self.ldos[i,:zero_e])
                 
     def smear_spatial(self,dx):
         dx/=self.path_distance[1]
         for i in range(0,self.eend-self.estart):
-            self.ldos[i,:]=gaussian_filter(self.ldos[i,:],dx,mode='wrap')
+            self.ldos[:,i]=gaussian_filter(self.ldos[:,i],dx,mode='wrap')
         
     #plots the ldos map and overlaid atoms on size+1 periodic cells
     def plot_map(self,norm_range=False,dx=0,**args):
