@@ -191,7 +191,7 @@ class ldos_line:
         
         for i in range(self.npts):
             pos=array([0.0,0.0,max(self.coord[:,2])+self.tip_disp])
-            pos+=self.lv_origin+self.lv_path*(i+0.5)/(self.npts)
+            pos+=self.lv_origin+self.lv_path*(i/(self.npts-1))
             self.x[i], self.y[i] , self.z[i] = pos[0], pos[1], pos[2]
         start=time()
         #executes ldos integration in parallel on a ProcessPool of self.nprocs processors
@@ -235,16 +235,16 @@ class ldos_line:
         return temp_ldos
     
     def normalize_position_slices(self,norm_range='full'):
-        zero_e=np.argmin(abs(self.energies))-self.estart
+        self.zero_e=np.argmin(abs(self.energies))-self.estart
         if norm_range=='full':
             for i in range(self.npts):
                 self.ldos[i,:]/=sum(self.ldos[i,:self.eend-self.estart])
-        if norm_range=='positive':
+        elif norm_range=='positive':
             for i in range(self.npts):
-                self.ldos[i,:]/=sum(self.ldos[i,zero_e:self.eend-self.estart])
-        if norm_range=='negative':
+                self.ldos[i,:]/=sum(self.ldos[i,self.zero_e:self.eend-self.estart])
+        elif norm_range=='negative':
             for i in range(self.npts):
-                self.ldos[i,:]/=sum(self.ldos[i,:zero_e])
+                self.ldos[i,:]/=sum(self.ldos[i,:self.zero_e])
                 
     def smear_spatial(self,dx):
         dx/=self.path_distance[1]
@@ -265,7 +265,7 @@ class ldos_line:
         else:
             self.orbitals=[self.orbitals[i] for i in orbitals_to_plot]
         self.ldos=sum([self.ldos[i] for i in orbitals_to_plot])
-            
+        
         if 'normalize_ldos' in args:
             normalize_ldos=args['normalize_ldos']
         else:
