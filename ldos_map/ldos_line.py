@@ -248,7 +248,7 @@ class ldos_line:
                 
     def smear_spatial(self,dx):
         dx/=self.path_distance[1]
-        for i in range(0,self.eend-self.estart):
+        for i in range(self.eend-self.estart):
             self.ldos[:,i]=gaussian_filter(self.ldos[:,i],dx,mode='wrap')
         
     #plots the ldos map and overlaid atoms on size+1 periodic cells
