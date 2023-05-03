@@ -370,16 +370,16 @@ class ldos_map:
             show_dos=args['show_dos'][0]
             dos_range=args['show_dos'][1]
             for i in range(2):
-                dos_range[i]=np.argmin(abs(dos_range[i]-self.energies))
+                dos_range[i]=int(np.argmin(abs(dos_range[i]-self.energies)))
             dos_list=[]
             for i in self.plot_atoms:
                 for j in range(len(self.atomtypes)):
                     if i < sum(self.atomnums[:j+1]):
                         break
                 if self.atomtypes[j] in show_dos or i in show_dos:
-                    dos_list.append(np.max(sum([np.array(self.dos[i+1][j]) for j in range(len(self.dos[i+1]))])))
-            max_val=max([abs(min(dos_list)),abs(max(dos_list))])
-            cnorm=Normalize(vmin=-max_val,vmax=max_val)
+                    dos_list.append(np.max(sum([np.array(self.dos[i+1][k][dos_range[0]:dos_range[1]]) for k in range(len(self.dos[i+1]))])))
+            cnorm=Normalize(vmin=min(dos_list),vmax=max(dos_list))
+            self.dos_list=dos_list
         else:
             show_dos=[]
                     
@@ -445,7 +445,7 @@ class ldos_map:
                         colors.append(jet(cnorm(dos_list[counter])))
                     else:
                         colors.append(self.atom_colors[j])
-            if self.atomtypes[j] in show_charges or i in show_charges:
+            if self.atomtypes[j] in show_charges or i in show_charges or self.atomtypes[j] in show_dos or i in show_dos:
                 counter+=1
                         
         atom_scatter=self.ldosax.scatter(tempx,tempy,color=colors,s=sizes)
