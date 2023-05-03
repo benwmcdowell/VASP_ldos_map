@@ -1,5 +1,6 @@
 from numpy import array,dot,exp,linspace,where,zeros,shape,average
 from numpy.linalg import norm,inv
+import numpy as np
 import sys
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
@@ -365,6 +366,24 @@ class ldos_map:
         else:
             normalize_ldos=True
             
+        if 'show_dos' in args:
+            show_dos=args['show_dos'][0]
+            dos_range=args['show_dos'][1]
+            for i in range(2):
+                dos_range[i]=np.argmin(abs(dos_range[i]-self.energies))
+            dos_list=[]
+            for i in self.plot_atoms:
+                for j in range(len(self.atomtypes)):
+                    if i < sum(self.atomnums[:j+1]):
+                        break
+                if self.atomtypes[j] in show_dos or i in show_dos:
+                    dos_list.append(np.max(sum([np.array(self.dos[i+1][j]) for j in range(len(self.dos[i+1]))])))
+            max_val=max([abs(min(dos_list)),abs(max(dos_list))])
+            cnorm=Normalize(vmin=-max_val,vmax=max_val)
+        else:
+            show_dos=[]
+                    
+            
         if 'show_charges' in args:
             show_charges=args['show_charges']
             charge_list=[]
@@ -422,6 +441,8 @@ class ldos_map:
                     sizes.append(self.atom_sizes[j]/(max(size)+1))
                     if self.atomtypes[j] in show_charges or i in show_charges:
                         colors.append(bwr(cnorm(charge_list[counter])))
+                    elif self.atomtypes[j] in show_dos or i in show_dos:
+                        colors.append(jet(cnorm(dos_list[counter])))
                     else:
                         colors.append(self.atom_colors[j])
             if self.atomtypes[j] in show_charges or i in show_charges:
