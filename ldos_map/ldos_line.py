@@ -65,9 +65,11 @@ class ldos_line:
     #sets the color and size of atoms overlayed on the topography
     #by default, all projected atoms are black and equally sized
     def set_atom_appearance(self,colors,sizes):
+        self.atom_colors=[]
+        self.atom_sizes=[]
         for i in range(len(self.atomtypes)):
-            self.atom_colors[i]=colors[i]
-            self.atom_sizes[i]=sizes[i]
+            self.atom_colors.append(colors[i])
+            self.atom_sizes.append(sizes[i])
             
     def plot_path(self):
         self.path_fig,self.path_ax=plt.subplots(1,1,tight_layout=True)
@@ -86,7 +88,9 @@ class ldos_line:
             colors.append(self.atom_colors[j])
                         
         atom_scatter=self.path_ax.scatter(tempx,tempy,color=colors,s=sizes)
+        self.path_ax.plot(self.x,self.y,color='black',lw=5)
         self.path_ax.set(xlabel='position / $\AA$', ylabel='position / $\AA$')
+        self.path_ax.set_aspect('equal')
         self.path_fig.show()
             
     #the ldos line is written to a file in the current directory with the following format:
