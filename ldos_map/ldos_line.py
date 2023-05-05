@@ -71,7 +71,7 @@ class ldos_line:
             self.atom_colors.append(colors[i])
             self.atom_sizes.append(sizes[i])
             
-    def plot_path(self):
+    def plot_path(self,size=1):
         self.path_fig,self.path_ax=plt.subplots(1,1,tight_layout=True)
         tempx=[]
         tempy=[]
@@ -79,13 +79,15 @@ class ldos_line:
         sizes=[]
         #plots the overlaid atoms as a scatterplot
         for i in range(len(self.coord)):
-            for j in range(len(self.atomtypes)):
-                if i < sum(self.atomnums[:j+1]):
-                    break
-            tempx.append(self.coord[i][0])
-            tempy.append(self.coord[i][1])
-            sizes.append(self.atom_sizes[j])
-            colors.append(self.atom_colors[j])
+            for k in range(-1*size,size+1):
+                for l in range(-1*size,size+1):
+                    for j in range(len(self.atomtypes)):
+                        if i < sum(self.atomnums[:j+1]):
+                            break
+                    tempx.append(self.coord[i][0]+self.lv[0,0]*k+self.lv[1,0]*l)
+                    tempy.append(self.coord[i][1]+self.lv[0,1]*k+self.lv[1,1]*l)
+                    sizes.append(self.atom_sizes[j])
+                    colors.append(self.atom_colors[j])
                         
         atom_scatter=self.path_ax.scatter(tempx,tempy,color=colors,s=sizes)
         self.path_ax.plot(self.x,self.y,color='black',lw=5)
