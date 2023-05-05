@@ -55,9 +55,39 @@ class ldos_line:
         try:
             self.lv, self.coord, self.atomtypes, self.atomnums = parse_poscar(poscar)[:4]
             self.dos, self.energies, self.ef, self.orbitals = parse_doscar(doscar)
+            #self.dos=np.ones((859,3,5000))
+            #for i in range(3):
+            #    self.dos[570,i]*=1000000
         except:
             print('error reading input files')
             sys.exit()
+            
+    #sets the color and size of atoms overlayed on the topography
+    #by default, all projected atoms are black and equally sized
+    def set_atom_appearance(self,colors,sizes):
+        for i in range(len(self.atomtypes)):
+            self.atom_colors[i]=colors[i]
+            self.atom_sizes[i]=sizes[i]
+            
+    def plot_path(self):
+        self.path_fig,self.path_ax=plt.subplots(1,1,tight_layout=True)
+        tempx=[]
+        tempy=[]
+        colors=[]
+        sizes=[]
+        #plots the overlaid atoms as a scatterplot
+        for i in range(len(self.coord)):
+            for j in range(len(self.atomtypes)):
+                if i < sum(self.atomnums[:j+1]):
+                    break
+            tempx.append(self.coord[i][0])
+            tempy.append(self.coord[i][1])
+            sizes.append(self.atom_sizes[j])
+            colors.append(self.atom_colors[j])
+                        
+        atom_scatter=self.path_ax.scatter(tempx,tempy,color=colors,s=sizes)
+        self.path_ax.set(xlabel='position / $\AA$', ylabel='position / $\AA$')
+        self.path_fig.show()
             
     #the ldos line is written to a file in the current directory with the following format:
     #3 lines of informational header
