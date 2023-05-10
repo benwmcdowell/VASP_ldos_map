@@ -379,10 +379,23 @@ class ldos_map:
                 if self.atomtypes[j] in show_dos or i in show_dos:
                     dos_list.append(np.max(sum([np.array(self.dos[i+1][k][dos_range[0]:dos_range[1]]) for k in range(len(self.dos[i+1]))])))
             cnorm=Normalize(vmin=min(dos_list),vmax=max(dos_list))
-            self.dos_list=dos_list
         else:
             show_dos=[]
                     
+        if 'show_potential' in args:
+            show_potential=args['show_potential'][0]
+            potential=np.array(args['show_potential'][1])
+            potential_list=[]
+            for i in self.plot_atoms:
+                for j in range(len(self.atomtypes)):
+                    if i < sum(self.atomnums[:j+1]):
+                        break
+                if self.atomtypes[j] in show_potential or i in show_potential:
+                    pos=[round(np.dot(self.coord[i],np.linalg.inv(self.lv))[k]*np.shape(potential)[k]) for k in range(2)]
+                    potential_list.append(potential[pos[0],pos[1]])
+            cnorm=Normalize(vmin=min(potential_list),vmax=max(potential_list))
+        else:
+            show_potential=[]
             
         if 'show_charges' in args:
             show_charges=args['show_charges']
@@ -443,9 +456,11 @@ class ldos_map:
                         colors.append(bwr(cnorm(charge_list[counter])))
                     elif self.atomtypes[j] in show_dos or i in show_dos:
                         colors.append(jet(cnorm(dos_list[counter])))
+                    elif self.atomtypes[j] in show_potential or i in show_potential:
+                        colors.append(jet(cnorm(potential_list[counter])))
                     else:
                         colors.append(self.atom_colors[j])
-            if self.atomtypes[j] in show_charges or i in show_charges or self.atomtypes[j] in show_dos or i in show_dos:
+            if self.atomtypes[j] in show_charges or i in show_charges or self.atomtypes[j] in show_dos or i in show_dos or self.atomtypes[j] in show_potential or i in show_potential:
                 counter+=1
                         
         atom_scatter=self.ldosax.scatter(tempx,tempy,color=colors,s=sizes)
