@@ -54,7 +54,11 @@ class ldos_line:
                 
         try:
             self.lv, self.coord, self.atomtypes, self.atomnums = parse_poscar(poscar)[:4]
+            #uncomment the next two lines to set all adlayer atom heights equal - TESTING
+            #for i in range(-300,0):
+            #    self.coord[i,2]=np.max(self.coord[:,2])
             self.dos, self.energies, self.ef, self.orbitals = parse_doscar(doscar)
+            #uncomment he next line to set LDOS equal for all atoms - for TESTING
             #self.dos=np.ones((859,3,5000))
             #for i in range(3):
             #    self.dos[570,i]*=1000000
