@@ -10,6 +10,7 @@ from time import time
 from pathos.multiprocessing import ProcessPool
 from lib import parse_doscar,parse_poscar,tunneling_factor
 from scipy.ndimage import gaussian_filter
+import copy
 
 class ldos_line:
     def __init__(self,filepath):
@@ -58,13 +59,67 @@ class ldos_line:
             #for i in range(-300,0):
             #    self.coord[i,2]=np.max(self.coord[:,2])
             self.dos, self.energies, self.ef, self.orbitals = parse_doscar(doscar)
-            #uncomment he next line to set LDOS equal for all atoms - for TESTING
+            #uncomment the next line to set LDOS equal for all atoms - for TESTING
             #self.dos=np.ones((859,3,5000))
             #for i in range(3):
             #    self.dos[570,i]*=1000000
         except:
             print('error reading input files')
             sys.exit()
+            
+    def set_path_from_atoms(self,path_atoms,**args):
+        path=[]
+        for i in path_atoms:
+            if len(i)>1:
+                tempvar=i[1:]
+            else:
+                tempvar=[0,0]
+            path.append(copy.deepcopy(self.coord[i[0]-1,:2]))
+            for j in range(2):
+                path[-1]+=self.lv[j,:2]*float(tempvar[j])
+                
+        #adds tolerance to the initial and final positions specified by the path
+        idiff=(path[1]-path[0])/np.linalg.norm(path[1]-path[0])
+        counter=0
+        while True in [np.isnan(i) for i in idiff]:
+            idiff=(path[counter]-path[0])/np.linalg.norm(path[counter]-path[0])
+            counter+=1
+        fdiff=(path[-1]-path[-2])/np.linalg.norm(path[-1]-path[-2])
+        counter=0
+        while True in [np.isnan(i) for i in fdiff]:
+            fdiff=(path[-1]-path[counter])/np.linalg.norm(path[-1]-path[counter])
+            counter+=1
+            
+        path_length=sum([np.linalg.norm(path[i]-path[i-1]) for i in range(1,len(path))])
+        
+        step_points=np.zeros(len(path)-1,dtype=np.int8)
+        for i in range(1,len(path)):
+            step_points[i-1]=round(np.linalg.norm(path[i]-path[i-1])/path_length*self.npts)-1
+            if step_points[i-1]==1:
+                step_points[i-1]+=1
+        step_points[0]+=1
+        self.npts=int(sum(step_points))
+        path_distance=np.array([path_length*i/(self.npts-1) for i in range(self.npts)])
+        path_coord=[path[0]]
+        for i in range(1,len(path)):
+            for j in range(step_points[i-1]):
+                if i==1 and j==0:
+                    pass
+                else:
+                    path_coord.append(path[i-1]+(path[i]-path[i-1])/(step_points[i-1]-1)*j)
+        path_coord=np.array(path_coord)
+        
+        for i in range(len(path_coord)):
+            path_coord[i]=np.dot(path_coord[i],np.linalg.inv(self.lv[:2,:2]))
+            for j in range(2):
+                while path_coord[i][j]>=1.0 or path_coord[i][j]<0.0:
+                    if path_coord[i][j]>=1.0:
+                        path_coord[i][j]-=1.0
+                    if path_coord[i][j]<0.0:
+                        path_coord[i][j]+=1.0
+            path_coord[i]=np.dot(path_coord[i],self.lv[:2,:2])
+                
+        return path_coord,path_distance
             
     #sets the color and size of atoms overlayed on the topography
     #by default, all projected atoms are black and equally sized
@@ -181,7 +236,10 @@ class ldos_line:
         self.x=array([0.0 for i in range(self.npts)])
         self.y=array([0.0 for i in range(self.npts)])
         self.z=array([0.0 for i in range(self.npts)])
-        self.path_distance=array([norm(self.lv_path*(i+0.5)/self.npts) for i in range(self.npts)])
+        if 'path_atoms' in args:
+            self.path_coord,self.path_distance=self.set_path_from_atoms(args['path_atoms'])
+        else:
+            self.path_distance=array([norm(self.lv_path*(i+0.5)/self.npts) for i in range(self.npts)])
         if 'nprocs' in args:
             self.nprocs=int(args['nprocs'])
         if 'tip_disp' in args:
@@ -231,7 +289,10 @@ class ldos_line:
         
         for i in range(self.npts):
             pos=array([0.0,0.0,max(self.coord[:,2])+self.tip_disp])
-            pos+=self.lv_origin+self.lv_path*(i/(self.npts-1))
+            if 'path_atoms' not in args:
+                pos+=self.lv_origin+self.lv_path*(i/(self.npts-1))
+            else:
+                pos[:2]+=self.path_coord[i]
             self.x[i], self.y[i] , self.z[i] = pos[0], pos[1], pos[2]
         start=time()
         #executes ldos integration in parallel on a ProcessPool of self.nprocs processors
@@ -278,18 +339,21 @@ class ldos_line:
         self.zero_e=np.argmin(abs(self.energies))-self.estart
         if norm_range=='full':
             for i in range(self.npts):
-                self.ldos[i,:]/=sum(self.ldos[i,:self.eend-self.estart])
+                for j in range(np.shape(self.ldos)[0]):
+                    self.ldos[j,i,:]/=sum(self.ldos[:,i,:self.eend-self.estart])
         elif norm_range=='positive':
             for i in range(self.npts):
-                self.ldos[i,:]/=sum(self.ldos[i,self.zero_e:self.eend-self.estart])
+                for j in range(np.shape(self.ldos)[0]):
+                    self.ldos[j,i,:]/=np.linalg.norm(self.ldos[:,i,self.zero_e:self.eend-self.estart])
         elif norm_range=='negative':
             for i in range(self.npts):
-                self.ldos[i,:]/=sum(self.ldos[i,:self.zero_e])
+                for j in range(np.shape(self.ldos)[0]):
+                    self.ldos[j,i,:]/=sum(self.ldos[:,i,:self.zero_e])
                 
     def smear_spatial(self,dx):
         dx/=self.path_distance[1]
         for i in range(self.eend-self.estart):
-            self.ldos[:,i]=gaussian_filter(self.ldos[:,i],dx,mode='wrap')
+            self.ldos[:,i]=gaussian_filter(self.ldos[:,i],dx,mode='constant')
         
     #plots the ldos map and overlaid atoms on size+1 periodic cells
     def plot_map(self,norm_range=False,dx=0,**args):
@@ -425,3 +489,35 @@ if __name__=='__main__':
         main.parse_VASP_output()
         main.calculate_ldos(npts,emax,emin,exclude=exclude,nprocs=nprocs,tip_disp=tip_disp,unit_cell_num=unit_cell_num,phi=phi)
         main.write_ldos()
+
+#helper function to generate path from VESTA text
+#simply click the atoms you would like to slice through in the order you would like to slice them
+#any duplicates will be discarded
+#then copy all the text from the VESTA window and paste as a single string into the argument of this function
+#the path list that can be supplied to the slice_path class is returned
+def create_path_from_VESTA(text):
+    path=[]
+    text=text.split()
+    counter=-1
+    for i in text:
+        if counter<0 and i=='Atom:':
+            counter=0
+            tempvar=[]
+        elif counter==0:
+            for j in path:
+                if int(i)==j[0]:
+                    counter=-1
+                    break
+            else:
+                tempvar.append(int(i))
+                counter+=1
+        elif counter in [1,2]:
+            counter+=1
+        elif counter in [3,4]:
+            tempvar.append(int(np.floor(float(i))))
+            counter+=1
+            if counter==5:
+                path.append(tempvar)
+                counter=-1
+
+    return path
