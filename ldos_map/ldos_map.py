@@ -95,6 +95,7 @@ class ldos_map:
                     self.y[i][j]=lines[5+self.npts[1]+i].split()[j]
                     for k in range(len(self.orbitals)):
                         self.ldos[k][i][j]=lines[6+k+(2+k)*self.npts[1]+i].split()[j]
+                        
                     
     #the ldos is written to a file in the current directory with the following format:
     #3 lines of informational header
@@ -213,6 +214,16 @@ class ldos_map:
             self.eend=len(self.energies)-1
             self.emax=self.energies[-1]
             print('specified emax exceeds maximum energy in DOSCAR. setting emax to {}'.format(self.emax))
+            
+        if 'work_function_correction' in args:
+            dphi=args['work_function_correction']
+            if np.shape(dphi)==(1,):
+                self.dphi=np.zeros(self.npts[0],self.npts[1])
+            else:
+                self.dphi=np.zeros(self.npts[0],self.npts[1])
+                for i in range(self.npts[0]):
+                    for j in range(self.npts[1]):
+                        self.dphi[i,j]=dphi[i/(self.npts[0]-1)*np.shape(dphi)[0],j/(self.npts[1]-1)*np.shape(dphi)[1]]
                 
         if self.phi!=0:
             self.K=array([tunneling_factor(np.max([abs(self.emin),abs(self.emax)]),abs(i),self.phi) for i in self.energies[self.estart:self.eend]])
@@ -738,6 +749,7 @@ if __name__=='__main__':
     npts=(1,1)
     phi=0
     sigma=0.0
+    work_function_correction=np.zeros(1)
     try:
         opts,args=getopt.getopt(sys.argv[1:],'e:n:x:p:t:u:w:s:',['erange=','npts=','exclude=','processors=','tip_disp=','num_unit_cells=','work_function=','sigma='])
     except getopt.GetoptError:
@@ -764,10 +776,12 @@ if __name__=='__main__':
             phi=float(j)
         if i in ['-s','--sigma']:
             sigma=float(j)
+        if i in ['-c','--work_function_correction']:
+            work_function_correction=np.load(j)
     if exists('./DOSCAR'):
         main=ldos_map('./')
         main.parse_VASP_output()
-        main.calculate_ldos(npts,emax,emin,exclude=exclude,nprocs=nprocs,tip_disp=tip_disp,unit_cell_num=unit_cell_num,phi=phi)
+        main.calculate_ldos(npts,emax,emin,exclude=exclude,nprocs=nprocs,tip_disp=tip_disp,unit_cell_num=unit_cell_num,phi=phi,work_function_correction=work_function_correction)
         if sigma!=0:
             main.smear_ldos(sigma)
         main.write_ldos()
