@@ -106,7 +106,7 @@ class ldos_map:
     #1 blank line
     #self.npts lines each containing self.npts ldos values
     def write_ldos(self):
-        filename='./map_E{}to{}V_D{}_X{}_N{}_W{}_U{}_S{}'.format(self.emin,self.emax,self.tip_disp,','.join(self.exclude_args),'x'.join([str(i) for i in self.npts]),np.average(self.phi),self.unit_cell_num,self.sigma)
+        filename='./map_E{}to{}V_D{}_X{}_N{}_W{}_U{}_S{}'.format(self.emin,self.emax,self.tip_disp,','.join(self.exclude_args),'x'.join([str(i) for i in self.npts]),np.average(self.phi+self.dphi),self.unit_cell_num,self.sigma)
         with open(filename, 'w') as file:
             file.write('integration performed from {} to {} V\n'.format(self.emin,self.emax))
             file.write('atoms types excluded from DOS integration: ')
@@ -221,10 +221,10 @@ class ldos_map:
                 self.dphi=np.zeros((self.npts[1],self.npts[0]))
             else:
                 self.dphi=np.zeros((self.npts[1],self.npts[0]))
-                zval=round((max(self.coord[:,2])+self.tip_disp)/self.lv[2,2]*np.shape(self.dphi)[2])
-                for i in range(self.npts[1]):
-                    for j in range(self.npts[0]):
-                        self.dphi[i,j]=dphi[i/(self.npts[0]-1)*np.shape(dphi)[0],j/(self.npts[1]-1)*np.shape(dphi)[1],zval]
+                zval=int(round((max(self.coord[:,2])+self.tip_disp)/self.lv[2,2]*np.shape(dphi)[2]))
+                for i in range(self.npts[0]):
+                    for j in range(self.npts[1]):
+                        self.dphi[j,i]=dphi[int(np.round(i/(self.npts[0]-1)*(np.shape(dphi)[0]-1))),int(np.round(j/(self.npts[1]-1)*(np.shape(dphi)[1]-1))),zval]
                 
         if self.phi!=0:
             self.K=array([tunneling_factor(np.max([abs(self.emin),abs(self.emax)]),abs(i),self.phi+self.dphi) for i in self.energies[self.estart:self.eend]])
@@ -262,7 +262,8 @@ class ldos_map:
     
     #performs integration at single point of the x,y grid when run in parallel
     def integrator(self,i,j):
-        from numpy import array,zeros
+        from numpy import array,zeros,exp
+        from numpy.linalg import norm
         pos=array([self.x[i][j],self.y[i][j],self.z[i][j]])
         temp_ldos=zeros((len(self.orbitals),self.npts[1],self.npts[0]))
         counter=1
