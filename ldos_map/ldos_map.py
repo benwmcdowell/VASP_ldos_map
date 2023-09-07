@@ -106,7 +106,7 @@ class ldos_map:
     #1 blank line
     #self.npts lines each containing self.npts ldos values
     def write_ldos(self):
-        filename='./map_E{}to{}V_D{}_X{}_N{}_W{}_U{}_S{}'.format(self.emin,self.emax,self.tip_disp,','.join(self.exclude_args),'x'.join([str(i) for i in self.npts]),self.phi,self.unit_cell_num,self.sigma)
+        filename='./map_E{}to{}V_D{}_X{}_N{}_W{}_U{}_S{}'.format(self.emin,self.emax,self.tip_disp,','.join(self.exclude_args),'x'.join([str(i) for i in self.npts]),np.average(self.phi),self.unit_cell_num,self.sigma)
         with open(filename, 'w') as file:
             file.write('integration performed from {} to {} V\n'.format(self.emin,self.emax))
             file.write('atoms types excluded from DOS integration: ')
@@ -218,17 +218,18 @@ class ldos_map:
         if 'work_function_correction' in args:
             dphi=args['work_function_correction']
             if np.shape(dphi)==(1,):
-                self.dphi=np.zeros(self.npts[0],self.npts[1])
+                self.dphi=np.zeros((self.npts[1],self.npts[0]))
             else:
-                self.dphi=np.zeros(self.npts[0],self.npts[1])
-                for i in range(self.npts[0]):
-                    for j in range(self.npts[1]):
-                        self.dphi[i,j]=dphi[i/(self.npts[0]-1)*np.shape(dphi)[0],j/(self.npts[1]-1)*np.shape(dphi)[1]]
+                self.dphi=np.zeros((self.npts[1],self.npts[0]))
+                zval=round((max(self.coord[:,2])+self.tip_disp)/self.lv[2,2]*np.shape(self.dphi)[2])
+                for i in range(self.npts[1]):
+                    for j in range(self.npts[0]):
+                        self.dphi[i,j]=dphi[i/(self.npts[0]-1)*np.shape(dphi)[0],j/(self.npts[1]-1)*np.shape(dphi)[1],zval]
                 
         if self.phi!=0:
-            self.K=array([tunneling_factor(np.max([abs(self.emin),abs(self.emax)]),abs(i),self.phi) for i in self.energies[self.estart:self.eend]])
+            self.K=array([tunneling_factor(np.max([abs(self.emin),abs(self.emax)]),abs(i),self.phi+self.dphi) for i in self.energies[self.estart:self.eend]])
         else:
-            self.K=array([1.0 for i in range(self.estart-self.eend)])
+            self.K=array([np.ones(self.npts[0],self.npts[1]) for i in range(self.estart-self.eend)])
             
         for i in range(self.npts[1]):
             for j in range(self.npts[0]):
@@ -270,7 +271,7 @@ class ldos_map:
                     counter=1
             if counter-1 not in self.exclude:
                 posdiff=norm(pos-k)
-                sf=exp(-1.0*posdiff*self.K*1.0e-10)
+                sf=exp(-1.0*posdiff*self.K[:,i,j]*1.0e-10)
                 for l in range(len(self.dos[counter])):
                     temp_ldos[l][i][j]+=sum(self.dos[counter][l][self.estart:self.eend]*sf)*(self.emax-self.emin)
             counter+=1
@@ -751,7 +752,7 @@ if __name__=='__main__':
     sigma=0.0
     work_function_correction=np.zeros(1)
     try:
-        opts,args=getopt.getopt(sys.argv[1:],'e:n:x:p:t:u:w:s:',['erange=','npts=','exclude=','processors=','tip_disp=','num_unit_cells=','work_function=','sigma='])
+        opts,args=getopt.getopt(sys.argv[1:],'e:n:x:p:t:u:w:s:c:',['erange=','npts=','exclude=','processors=','tip_disp=','num_unit_cells=','work_function=','sigma=','work_function_correction='])
     except getopt.GetoptError:
         print('error in command line syntax')
         sys.exit(2)
