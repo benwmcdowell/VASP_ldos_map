@@ -774,7 +774,7 @@ if __name__=='__main__':
             tip_disp=float(j)
         if i in ['-u','--unit_cell_num']:
             unit_cell_num=int(j)
-        if i in ['-w','-work_function']:
+        if i in ['-w','--work_function']:
             phi=float(j)
         if i in ['-s','--sigma']:
             sigma=float(j)
